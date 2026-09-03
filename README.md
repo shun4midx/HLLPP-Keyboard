@@ -298,6 +298,8 @@ You can contact Shun via [Email](mailto:shun4midx@gmail.com) or Discord at @shun
 
 Most of HLLPP-Keyboard is licensed under the MIT License.
 
+The HLLPP C++ library in [this directory](https://github.com/shun4midx/HLLPP-Keyboard/tree/main/app/src/main/cpp/HyperLogLogPlusPlus-Autocorrect/hllpp_cpp) of the project is directly cloned from Shun's [HLLPP Autocorrection C++ library](https://github.com/shun4midx/HyperLogLogPlusPlus-Autocorrect/tree/main/hllpp_cpp). The library is licensed under the Apache License 2.0. A copy of its license can be found [here](https://github.com/shun4midx/HLLPP-Keyboard/blob/main/app/src/main/cpp/HyperLogLogPlusPlus-Autocorrect/LICENSE) in this project.
+
 `app/src/main/data/tsi_custom.json` is derived from `tobopomo.js/data/tsi.json` from the [`dylandy/tobopomo.js`](https://github.com/dylandy/tobopomo.js) project and is distributed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 
 See [`THIRD_PARTY_LICENSES.md`](THIRD_PARTY_LICENSES.md) and [`licenses/LGPL-3.0.md`](licenses/LGPL-3.0.md) for details.
