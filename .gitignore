@@ -20,3 +20,4 @@ tsi.json
 tsi_extract.py
 .venv
 附錄2、民國112年語料詞頻表.xlsx
+app/release/baselineProfiles/*
