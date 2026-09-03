@@ -1,4 +1,4 @@
-#include <FQ-HLL/FQ-HLL.h>
+#include <HLLPP/HLLPP.h>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -158,7 +158,7 @@ std::string stripOuterNonLetters(const std::string& raw) {
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_fqhll_keyboard_CustomKeyboardApp_nativeAddWord(JNIEnv* env, jclass, jstring jword, jstring jpath, jstring jcontractionpath) {
+Java_com_hllpp_keyboard_CustomKeyboardApp_nativeAddWord(JNIEnv* env, jclass, jstring jword, jstring jpath, jstring jcontractionpath) {
     if (!g_ac) return;
 
     const char* c_word = env->GetStringUTFChars(jword, nullptr);
@@ -235,7 +235,7 @@ void removeContraction(const std::string& path, const std::string& key) {
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_fqhll_keyboard_CustomKeyboardApp_nativeRemoveWord(JNIEnv* env, jclass, jstring jword, jstring jpath, jstring jcontractionpath) {
+Java_com_hllpp_keyboard_CustomKeyboardApp_nativeRemoveWord(JNIEnv* env, jclass, jstring jword, jstring jpath, jstring jcontractionpath) {
     if (!g_ac) return;
 
     const char* c_word = env->GetStringUTFChars(jword, nullptr);
@@ -283,7 +283,7 @@ Java_com_fqhll_keyboard_CustomKeyboardApp_nativeRemoveWord(JNIEnv* env, jclass, 
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_fqhll_keyboard_CustomKeyboardApp_nativeInitAutocorrector(JNIEnv* env, jobject /* this */, jstring jpath) {
+Java_com_hllpp_keyboard_CustomKeyboardApp_nativeInitAutocorrector(JNIEnv* env, jobject /* this */, jstring jpath) {
     const char* c_path = env->GetStringUTFChars(jpath, nullptr);
     std::string path(c_path);
     env->ReleaseStringUTFChars(jpath, c_path);
@@ -295,7 +295,7 @@ Java_com_fqhll_keyboard_CustomKeyboardApp_nativeInitAutocorrector(JNIEnv* env, j
 
 extern "C"
 JNIEXPORT jobject JNICALL
-Java_com_fqhll_keyboard_CustomKeyboardApp_nativeSuggest(
+Java_com_hllpp_keyboard_CustomKeyboardApp_nativeSuggest(
         JNIEnv* env,
         jobject /* this */,
         jstring prefix,
@@ -1118,7 +1118,7 @@ Java_com_fqhll_keyboard_CustomKeyboardApp_nativeSuggest(
     );
 
     // Find Suggestion class + ctor
-    jclass suggCls = env->FindClass("com/fqhll/keyboard/Suggestion");
+    jclass suggCls = env->FindClass("com/hllpp/keyboard/Suggestion");
     // signature: ( [Ljava/lang/String; [D )V
     jmethodID ctor = env->GetMethodID(
             suggCls,
@@ -1132,7 +1132,7 @@ Java_com_fqhll_keyboard_CustomKeyboardApp_nativeSuggest(
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_fqhll_keyboard_CustomKeyboardApp_nativeSetLayout(JNIEnv* env, jclass, jstring jlayout, jstring jpath) {
+Java_com_hllpp_keyboard_CustomKeyboardApp_nativeSetLayout(JNIEnv* env, jclass, jstring jlayout, jstring jpath) {
     if (!g_ac) return;
 
     const char* c_path = env->GetStringUTFChars(jpath, nullptr);

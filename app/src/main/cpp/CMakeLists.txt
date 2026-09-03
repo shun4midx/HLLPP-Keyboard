@@ -6,8 +6,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_compile_options(-O2)
 
-# Add FQ-HLL subdirectory (must contain its own CMakeLists.txt)
-add_subdirectory(FQ-HyperLogLog-Autocorrect/fq_hll_cpp)
+# Add HLLPP subdirectory (must contain its own CMakeLists.txt)
+add_subdirectory(HyperLogLogPlusplus-Autocorrect/hllpp_cpp)
 
 # JNI shared library for Android
 add_library(${CMAKE_PROJECT_NAME} SHARED
@@ -16,19 +16,19 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
 
 # Include directories
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/FQ-HyperLogLog-Autocorrect/fq_hll_cpp/src/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/HyperLogLogPlusplus-Autocorrect/hllpp_cpp/src/include
 )
 
-# Link FQ-HLL and Android libraries
+# Link HLLPP and Android libraries
 target_link_libraries(${CMAKE_PROJECT_NAME}
-        fq_hll
+        hllpp
         android
         log
 )
 
 # Copies test_files
 if(ANDROID)
-    file(GLOB TEST_FILES "${CMAKE_CURRENT_SOURCE_DIR}/FQ-HyperLogLog-Autocorrect/fq_hll_cpp/src/test_files/*")
+    file(GLOB TEST_FILES "${CMAKE_CURRENT_SOURCE_DIR}/HyperLogLogPlusplus-Autocorrect/hllpp_cpp/src/test_files/*")
 
     foreach(f ${TEST_FILES})
         get_filename_component(f_name "${f}" NAME)

@@ -50,14 +50,14 @@
     <color name="custom_light_blue_transparent">#5591FFFA</color>
     <color name="custom_light_blue_transparent_2">#3091FFFA</color>
 
-    <color name="custom_fqhll_logo_pink">#ff1fa9</color>
-    <color name="custom_fqhll_logo_purple">#bc3fde</color>
-    <color name="custom_fqhll_logo_blue">#0025cc</color>
-    <color name="custom_fqhll_logo_blue_transparent">#430025CC</color>
-    <color name="custom_fqhll_logo_wire_light_blue">#5ca3ff</color>
-    <color name="custom_fqhll_banner_pink">#ff1fa9</color>
-    <color name="custom_fqhll_banner_purple">#bc3fde</color>
-    <color name="custom_fqhll_banner_blue">#0b259b</color>
+    <color name="custom_hllpp_logo_pink">#ff1fa9</color>
+    <color name="custom_hllpp_logo_purple">#bc3fde</color>
+    <color name="custom_hllpp_logo_blue">#0025cc</color>
+    <color name="custom_hllpp_logo_blue_transparent">#430025CC</color>
+    <color name="custom_hllpp_logo_wire_light_blue">#5ca3ff</color>
+    <color name="custom_hllpp_banner_pink">#ff1fa9</color>
+    <color name="custom_hllpp_banner_purple">#bc3fde</color>
+    <color name="custom_hllpp_banner_blue">#0b259b</color>
 
     <color name="sage_letter">#78c7c7</color>
     <color name="sage_bg">#348781</color>

@@ -10,7 +10,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.FQHLLKeyboard"
+        android:theme="@style/Theme.HLLPPKeyboard"
         tools:targetApi="31">
 
         <activity
@@ -28,7 +28,7 @@
         </activity>
 
         <service android:name=".CustomKeyboardApp"
-            android:label="FQ-HLL Keyboard"
+            android:label="HLLPP Keyboard"
             android:permission="android.permission.BIND_INPUT_METHOD"
             android:exported="true">
             <intent-filter>

@@ -17,11 +17,11 @@ plugins {
 }
 
 android {
-    namespace = "com.fqhll.keyboard"
+    namespace = "com.hllpp.keyboard"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.fqhll.keyboard"
+        applicationId = "com.hllpp.keyboard"
         minSdk = 26
         targetSdk = 36
         versionCode = 1

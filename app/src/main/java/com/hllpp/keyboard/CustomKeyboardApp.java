@@ -1,0 +1,3766 @@
+package com.hllpp.keyboard;
+
+import android.annotation.SuppressLint;
+import android.content.ClipData;
+import android.content.ClipDescription;
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
+import android.inputmethodservice.InputMethodService;
+import android.inputmethodservice.Keyboard;
+import android.inputmethodservice.KeyboardView;
+import android.media.AudioManager;
+import android.net.Uri;
+import android.os.Looper;
+import android.os.Handler;
+import android.text.InputType;
+import android.util.TypedValue;
+import android.view.ContextThemeWrapper;
+import android.view.KeyEvent;
+import android.view.LayoutInflater;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.ExtractedText;
+import android.view.inputmethod.ExtractedTextRequest;
+import android.view.inputmethod.InputConnection;
+import android.view.inputmethod.InputContentInfo;
+import android.widget.LinearLayout;
+import android.widget.PopupWindow;
+import android.widget.Space;
+import android.widget.TextView;
+import android.view.Gravity;
+import android.view.ViewGroup;
+import android.widget.Toast;
+import android.media.SoundPool;
+import android.content.ClipboardManager;
+import android.text.TextPaint;
+
+import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.RecyclerView;
+import com.google.android.flexbox.FlexboxLayoutManager;
+import com.google.android.flexbox.FlexDirection;
+import com.google.android.flexbox.FlexWrap;
+
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.util.Arrays;
+import java.util.Deque;
+import java.util.ArrayDeque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Map;
+import java.text.BreakIterator;
+
+public class CustomKeyboardApp extends InputMethodService
+        implements KeyboardView.OnKeyboardActionListener, SharedPreferences.OnSharedPreferenceChangeListener {
+
+    private CustomKeyboardView kv;
+    private Keyboard keyboard;
+    private Keyboard emojiKeyboard;
+    private Keyboard symbolKeyboard;
+    private Keyboard mathKeyboard;
+    private Keyboard clipKeyboard;
+    private Keyboard editorKeyboard;
+    private Keyboard numpadKeyboard;
+    private Keyboard zhuyinKeyboard;
+    private Keyboard pinyinKeyboard;
+    private Keyboard engKeyboard;
+
+    private Keyboard currentKeyboard;
+    private Keyboard lastNonPageKeyboard;
+
+    private enum MainKeyboardMode {
+        ENGLISH,
+        CHINESE
+    }
+
+    private MainKeyboardMode mainKeyboardMode = MainKeyboardMode.ENGLISH;
+
+    private enum ChineseInputType {
+        ZHUYIN,
+        PINYIN
+    }
+
+    private ChineseInputType chineseInputType = ChineseInputType.ZHUYIN;
+    private Keyboard chiKeyboard;
+
+    private PopupWindow keyPreviewPopup;
+    private TextView previewText;
+
+    private int caps_state = 1; // 0 = off, 1 = single shift, 2 = double shift
+    private long last_caps_time = 0;
+    private boolean defaultCaps = true;
+    private boolean disableAutoCaps = false;
+    private boolean useFullStopComment = false;
+
+    private boolean useEten = false;
+    private static final int DOUBLE_TAP_TIMEOUT = 300; // Smth like Gboard capping
+
+    // Don't show pop-up for SPACE, CAPS (-1), DELETE (-5), Symbols (-10 from symbols page and -2 from main page), or ENTER (-4)
+    private static final Set<Integer> NO_POPUP = new HashSet<>(Arrays.asList(32, -1, -5, -10, -2, -4, -42, -52, -14, -13));
+    private static final Set<String> CAPITALIZE_ENDS = new HashSet<>(Arrays.asList(". ", "! ", "? "));
+
+    private static final Set<Character> LETTERS = new HashSet<>(Arrays.asList('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'));
+    private static final String[] engLetterArray = new String[]{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"};
+//    private static final String[] zhuyinLetterArray = new String[]{"ㄅ", "ㄆ", "ㄇ", "ㄈ", "ㄉ", "ㄊ", "ㄋ", "ㄌ", "ㄍ", "ㄎ", "ㄏ", "ㄐ", "ㄑ", "ㄒ", "ㄓ", "ㄔ", "ㄕ", "ㄖ", "ㄗ", "ㄘ", "ㄙ", "ㄚ", "ㄛ", "ㄜ", "ㄝ", "ㄞ", "ㄟ", "ㄠ", "ㄡ", "ㄢ", "ㄣ", "ㄤ", "ㄥ", "ㄦ", "ㄧ", "ㄨ", "ㄩ", "ˉ", "ˊ", "ˇ", "ˋ", "˙"};
+    private static String[] longPressSymbols = new String[]{};
+
+    private boolean supersubMode = false;
+    private static final String[] engSuperArray = new String[]{"ᵃ", "ᵇ", "ᶜ", "ᵈ", "ᵉ", "ᶠ", "ᵍ", "ʰ", "ⁱ", "ʲ", "ᵏ", "ˡ", "ᵐ", "ⁿ", "ᵒ", "ᵖ", "⁹", "ʳ", "ˢ", "ᵗ", "ᵘ", "ᵛ", "ʷ", "ˣ", "ʸ", "ᶻ"};
+    private static final String[] engSubArray = new String[]{"ₐ", "b", "꜀", "∂", "ₑ", "f", "g", "ₕ", "ᵢ", "ⱼ", "ₖ", "ₗ", "ₘ", "ₙ", "ₒ", "ₚ", "₉", "ᵣ", "ₛ", "ₜ", "ᵤ", "ᵥ", "ᵥᵥ", "ₓ", "ᵧ", "z"};
+
+    private static final String[] mathbbEngArray = new String[]{"𝔸", "𝔹", "ℂ", "𝔻", "𝔼", "𝔽", "𝔾", "ℍ", "𝕀", "𝕁", "𝕂", "𝕃", "𝕄", "ℕ", "𝕆", "ℙ", "ℚ", "ℝ", "𝕊", "𝕋", "𝕌", "𝕍", "𝕎", "𝕏", "𝕐", "ℤ"};
+    private static final String[] mathbbLowerEngArray = new String[]{"𝕒", "𝕓", "𝕔", "𝕕", "𝕖", "𝕗", "𝕘", "𝕙", "𝕚", "𝕛", "𝕜", "𝕝", "𝕞", "𝕟", "𝕠", "𝕡", "𝕢", "𝕣", "𝕤", "𝕥", "𝕦", "𝕧", "𝕨", "𝕩", "𝕪", "𝕫"};
+    private static final String[] mathbbDigitArray = new String[]{"𝟘", "𝟙", "𝟚", "𝟛", "𝟜", "𝟝", "𝟞", "𝟟", "𝟠", "𝟡"};
+
+    private static final String[] digitSuperArray = {"⁰","¹","²","³","⁴","⁵","⁶","⁷","⁸","⁹"};
+    private static final String[] digitSubArray = {"₀","₁","₂","₃","₄","₅","₆","₇","₈","₉"};
+
+    private static final String[] longPressSymbolsMain = new String[]{"\"", "}", "\\", "(", "/", ")", "*", "#", "&", "%", "+", "-", ">", "<", "^", "~", "?", "$", "'", "@", ";", "{", "!", "=", ":", "_"};
+    private static final String[] longPressSymbolsAlt = new String[]{"@", ";", "'", "$", "|", "_", "&", "-", ">", "+", "(", ")", "?", "!", "{", "}", "%", "=", "#", "[", "<", ":", "\\", "\"", "]", "*"};
+    private static final String[] longPressSymbolsMath = new String[]{"⊥", "≡", "≠", "⊢", "∩", "⊣", "↑", "↓", "∞", "←", "→", "⟷", "≥", "≤", "∃", "∂", "∧", "∪", "⊤", "⊂", "∀", "≃", "∨", "⌈", "⊃", "⌊"};
+    private float scaleX, scaleY;
+    private int lastTouchX, lastTouchY;
+
+    private Keyboard.Key tapped;
+
+    // (jperm voice) hope you can turn on word wrap
+    public static final String[] emoji_list = new String[]{"😭", "😂", "💀", "😔", "🫠", "💁‍♂️", "🙇‍♂️", "💩", "💅", "🫂", "🔥", "🍀", "👾", "👽", "🛸", "👀", "✨️", "🐑", "✅️", "❌️", "🐸", "🌸", "🎀", "🤡", "😡", "🙏", "👻", "🥺", "😐", "👍", "😤", "🤓", "😀", "🦆", "🥬", "🐒", "🧠"};
+    public static final String[][] emoji_variation_list = new String[][]{new String[]{"🙇‍♂️", "🙇‍♀️", "🙇"}, new String[]{"💁‍♂️", "💁‍♀️", "💁"}};
+    public static final Map<String, String[]> emoji_variations = new HashMap<>();
+    public static Map<Integer,String> emojis;
+    public static Map<Integer,String> math_symbols;
+
+    private void init_emoji_variations() {
+
+        for (String[] emojis : emoji_variation_list) {
+            for (int j = 0; j < 3; j++) {
+
+                emoji_variations.put(emojis[j], emojis);
+
+            }
+        }
+
+    }
+
+    public static final String[] math_symbol_list = new String[]{"¹", "²", "³", "⁴", "⁵", "⁶", "⁷", "⁸", "⁹", "⁰", "∀", "∃", "⇔", "⇒", "Δ", "θ", "π", "ƒ", "α", "β", "±", "≠", "≈", "≡", "Σ", "√", "∩", "∪", "∈", "∋", "⊂", "⊃", "⊆", "⊇", "□", "∅", "∞"};
+
+    private void init_emoji_symbols() {
+        emojis = getEmojiCodes();
+        math_symbols = getMathCodes();
+    }
+
+    private LinearLayout suggestionBar;
+    private View root;
+
+    private boolean nativeLoaded = false;
+
+    private final Handler longPressHandler = new Handler(Looper.getMainLooper());
+    private final Handler holdHandler = new Handler(Looper.getMainLooper());
+    private Runnable longPressRunnable;
+    private Runnable holdRunnable;
+    private boolean isHeld = false;
+    private static final long LONG_PRESS_MS = 350;
+    private static final long HOLD_MS = 100;
+    private boolean isLongPress = false;
+
+    // Coyote‑time window for grouping near‑simultaneous presses
+    private static final long COYOTE_WINDOW_MS = 1;
+    private final List<Integer> pendingKeys = new ArrayList<>();
+    private final Handler coyoteHandler = new Handler(Looper.getMainLooper());
+    private final Runnable flushRunnable = this::flushPendingKeys;
+
+    private static final double AUTO_REPLACE_THRESHOLD = 0.6;
+    private boolean defaultAutocor = true;
+
+    private static final int LOOKBACK = 64;
+    private final BreakIterator graphemeIter = BreakIterator.getCharacterInstance();
+
+    private boolean isSelectToggled = false;
+
+    private boolean isSkippedAutoreplace = false;
+
+    private SoundPool soundPool;
+    private int clickSoundId;
+    private boolean isKeySoundEnabled = true;
+
+    private android.widget.PopupWindow candidatesPopup;
+    private boolean zhuyinExpanded = false;
+
+    List<String> zhuyinSuggestions = new ArrayList<>();
+    List<Integer> zhuyinSuggestionDeleteCounts = new ArrayList<>();
+    private static final Set<Character> ZHUYIN_DELIMITERS = new HashSet<>(Arrays.asList('˙', 'ˊ', 'ˇ', 'ˋ', ' '));
+    private StringBuilder zhuyinBuffer = new StringBuilder();
+    private LinearLayout zhuyinCompositionBar;
+    private TextView zhuyinCompositionText;
+
+    private ZhuyinTyper zhuyinTyper;
+    private PinyinTyper pinyinTyper;
+
+    private boolean forceEmptySuggestions = false;
+    private int selectionAnchor = -1;
+
+    private boolean zhuyinLongPressQwerty = true;
+    private boolean zhuyinQwertyCaps = false;
+
+    // Map math Unicode symbols to ASCII equivalents
+    private static final Map<Character, String> mathNaturalize = Map.ofEntries(
+            Map.entry('×', "*"),
+            Map.entry('÷', "/")
+    );
+
+    // Map superscript Unicode chars to normal digits/operators
+    private static final Map<Character, String> superscripts = Map.ofEntries(
+            Map.entry('⁰', "0"),
+            Map.entry('¹', "1"),
+            Map.entry('²', "2"),
+            Map.entry('³', "3"),
+            Map.entry('⁴', "4"),
+            Map.entry('⁵', "5"),
+            Map.entry('⁶', "6"),
+            Map.entry('⁷', "7"),
+            Map.entry('⁸', "8"),
+            Map.entry('⁹', "9"),
+            Map.entry('⁺', "+"),
+            Map.entry('⁻', "-"),
+            Map.entry('⁽', "("),
+            Map.entry('⁾', ")"),
+            Map.entry('ˣ', "*"),
+            Map.entry('ᐟ', "/"),
+            Map.entry('˙', ".")
+    );
+
+    private static final Map<Integer, String> SYMBOL_TO_CHI = Map.ofEntries(
+            Map.entry((int) ',', "，"),
+            Map.entry((int) '.', "。"),
+            Map.entry((int) '!', "！"),
+            Map.entry((int) '?', "？"),
+            Map.entry((int) ':', "："),
+            Map.entry((int) ';', "；"),
+            Map.entry((int) '(', "（"),
+            Map.entry((int) ')', "）"),
+            Map.entry((int) '\'', "『"),
+            Map.entry((int) '"', "』"),
+            Map.entry((int) '~', "～")
+    );
+
+    // Long press output maps
+    private static final Map<Integer, String> SYMBOL_LONG_PRESS_EN = Map.ofEntries(
+            Map.entry((int) '0', "⁰"),
+            Map.entry((int) '1', "¹"),
+            Map.entry((int) '2', "²"),
+            Map.entry((int) '3', "³"),
+            Map.entry((int) '4', "⁴"),
+            Map.entry((int) '5', "⁵"),
+            Map.entry((int) '6', "⁶"),
+            Map.entry((int) '7', "⁷"),
+            Map.entry((int) '8', "⁸"),
+            Map.entry((int) '9', "⁹"),
+            Map.entry((int) '.', "⁄"),
+            Map.entry((int) '/', "\\"),
+            Map.entry((int) '[', "{"),
+            Map.entry((int) ']', "}"),
+            Map.entry((int) '_', "|"),
+            Map.entry((int) '!', "！"),
+            Map.entry((int) '?', "？"),
+            Map.entry((int) '~', "～"),
+            Map.entry((int) ':', "："),
+            Map.entry((int) '(', "（"),
+            Map.entry((int) ')', "）"),
+            Map.entry((int) '-', "、"),
+            Map.entry((int) '<', "「"),
+            Map.entry((int) '>', "」"),
+            Map.entry((int) '\'', "『"),
+            Map.entry((int) '"', "』"),
+            Map.entry((int) ';', "；"),
+            Map.entry((int) '+', "⁺"),
+            Map.entry((int) '@', "⁻"),
+            Map.entry((int) '×', "ˣ"),
+            Map.entry((int) '÷', "ᐟ"),
+            Map.entry((int) '=', "⁼"),
+            Map.entry((int) '&', "⁽"),
+            Map.entry((int) '*', "⁾"),
+            Map.entry((int) '#', "₊"),
+            Map.entry((int) '$', "₋"),
+            Map.entry((int) '%', "ₓ"),
+            Map.entry((int) '^', "₌")
+    );
+
+    private static final Map<Integer, String> SYMBOL_LONG_PRESS_ZH = Map.ofEntries(
+            Map.entry((int) '0', "⁰"),
+            Map.entry((int) '1', "¹"),
+            Map.entry((int) '2', "²"),
+            Map.entry((int) '3', "³"),
+            Map.entry((int) '4', "⁴"),
+            Map.entry((int) '5', "⁵"),
+            Map.entry((int) '6', "⁶"),
+            Map.entry((int) '7', "⁷"),
+            Map.entry((int) '8', "⁸"),
+            Map.entry((int) '9', "⁹"),
+            Map.entry((int) '.', "."),
+            Map.entry((int) '/', "｜"),
+            Map.entry((int) '[', "【"),
+            Map.entry((int) ']', "】"),
+            Map.entry((int) '_', "——"),
+            Map.entry((int) '!', "!"),
+            Map.entry((int) '?', "?"),
+            Map.entry((int) ':', ":"),
+            Map.entry((int) '~', "⋯⋯"),
+            Map.entry((int) '(', "《"),
+            Map.entry((int) ')', "》"),
+            Map.entry((int) '-', "、"),
+            Map.entry((int) '<', "〈"),
+            Map.entry((int) '>', "〉"),
+            Map.entry((int) '\'', "『"),
+            Map.entry((int) '"', "』"),
+            Map.entry((int) ';', "・"),
+            Map.entry((int) '+', "⁺"),
+            Map.entry((int) '@', "⁻"),
+            Map.entry((int) '×', "ˣ"),
+            Map.entry((int) '÷', "ᐟ"),
+            Map.entry((int) '=', "⁼"),
+            Map.entry((int) '&', "⁽"),
+            Map.entry((int) '*', "⁾"),
+            Map.entry((int) '#', "₊"),
+            Map.entry((int) '$', "₋"),
+            Map.entry((int) '%', "ₓ"),
+            Map.entry((int) '^', "₌")
+    );
+
+    private static final Map<Integer, String> MATH_LONG_PRESS = Map.ofEntries(
+            // Superscript digits -> subscript digits
+            Map.entry(-1000, "₁"),
+            Map.entry(-1001, "₂"),
+            Map.entry(-1002, "₃"),
+            Map.entry(-1003, "₄"),
+            Map.entry(-1004, "₅"),
+            Map.entry(-1005, "₆"),
+            Map.entry(-1006, "₇"),
+            Map.entry(-1007, "₈"),
+            Map.entry(-1008, "₉"),
+            Map.entry(-1009, "₀"),
+            Map.entry(-1010, "∵"),   // ∀
+            Map.entry(-1011, "∴"),   // ∃
+            // -1012 is empty
+            Map.entry(-1013, "⇐"),   // ⇒
+            Map.entry(-1014, "△"),   // Δ
+            Map.entry(-1015, "ᶿ"),   // θ
+            Map.entry(-1016, "Π"),   // π
+            Map.entry(-1017, "∫"),   // ƒ
+            Map.entry(-1018, "∝"),   // α
+            Map.entry(-1019, "μ"),   // β
+            Map.entry(-1020, "ε"),   // ±
+            Map.entry(-1021, "δ"),   // ≠
+            Map.entry(-1022, "∂"),   // ≈
+            Map.entry(-1023, "≅"),   // ≡
+            Map.entry(-1024, "σ"),   // Σ
+            Map.entry(-1025, "λ"),   // √
+            Map.entry(-1026, "ⁿ"),   // ∩
+            Map.entry(-1027, "ₙ"),   // ∪
+            Map.entry(-1028, "→"),   // ∈
+            Map.entry(-1029, "↦"),   // ∋
+            Map.entry(-1030, "ㄥ"),   // ⊂
+            Map.entry(-1031, "⇌"),   // ⊃
+            Map.entry(-1032, "≤"),   // ⊆
+            Map.entry(-1033, "≥"),   // ⊇
+            Map.entry(-1034, "⊕"),   // □
+            Map.entry(-1035, "⊗"),   // ∅
+            Map.entry(-1036, "⊙"),   // ∞
+            Map.entry((int) '.', "⁄")
+    );
+
+    private static final Map<Integer, String> EMOJI_LONG_PRESS = Map.ofEntries(
+            Map.entry(-100, "😨"),    // 😭
+            Map.entry(-101, "🤪"),    // 😂
+            Map.entry(-102, "🫩"),    // 💀
+            Map.entry(-103, "😢"),    // 😔
+            Map.entry(-104, "🥲"),    // 🫠
+
+            // -105 handled dynamically: shrug
+            // -106 handled dynamically: bowing person -> standing
+
+            Map.entry(-107, "🥔️"),   // 💩
+
+            Map.entry(-110, "🖕"),    // 🔥
+            Map.entry(-111, "🫶"),    // 🍀
+
+            Map.entry(-114, "🪼"),    // 🛸
+            Map.entry(-115, "🫪"),    // 👀
+            Map.entry(-116, "⚡️"),   // ✨
+            Map.entry(-117, "🐟"),    // 🐑
+
+            Map.entry(-119, "⁉️"),    // ❌
+            Map.entry(-120, "🐢"),    // 🐸
+
+            Map.entry(-123, "🥚"),    // 🤡
+            Map.entry(-125, "🛐"),    // 🙏
+
+            Map.entry(-127, "🥹"),    // 🥺
+            Map.entry(-128, "🫡"),    // 😐
+            Map.entry(-129, "‼️"),    // 👍
+            Map.entry(-130, "👑"),    // 😤
+            Map.entry(-131, "🧂"),    // 🤓
+            Map.entry(-132, "😍"),    // 😀
+            Map.entry(-133, "🐦"),    // 🦆
+            Map.entry(-134, "🧄"),    // 🥬
+            Map.entry(-135, "🐔"),    // 🐒
+            Map.entry(-136, "🪨")     // 🧠
+    );
+
+    private static final Map<Integer, String> ZHUYIN_LONG_PRESS_QWERTY = Map.ofEntries(
+            Map.entry((int) 'ㄅ', "1"),
+            Map.entry((int) 'ㄆ', "q"),
+            Map.entry((int) 'ㄇ', "a"),
+            Map.entry((int) 'ㄈ', "z"),
+            Map.entry((int) 'ㄉ', "2"),
+            Map.entry((int) 'ㄊ', "w"),
+            Map.entry((int) 'ㄋ', "s"),
+            Map.entry((int) 'ㄌ', "x"),
+            Map.entry((int) 'ㄍ', "e"),
+            Map.entry((int) 'ㄎ', "d"),
+            Map.entry((int) 'ㄏ', "c"),
+            Map.entry((int) 'ㄐ', "r"),
+            Map.entry((int) 'ㄑ', "f"),
+            Map.entry((int) 'ㄒ', "v"),
+            Map.entry((int) 'ㄓ', "5"),
+            Map.entry((int) 'ㄔ', "t"),
+            Map.entry((int) 'ㄕ', "g"),
+            Map.entry((int) 'ㄖ', "b"),
+            Map.entry((int) 'ㄗ', "y"),
+            Map.entry((int) 'ㄘ', "h"),
+            Map.entry((int) 'ㄙ', "n"),
+            Map.entry((int) 'ㄧ', "u"),
+            Map.entry((int) 'ㄨ', "j"),
+            Map.entry((int) 'ㄩ', "m"),
+            Map.entry((int) 'ㄚ', "8"),
+            Map.entry((int) 'ㄛ', "i"),
+            Map.entry((int) 'ㄜ', "k"),
+            Map.entry((int) 'ㄝ', "⋯⋯"),
+            Map.entry((int) 'ㄞ', "9"),
+            Map.entry((int) 'ㄟ', "o"),
+            Map.entry((int) 'ㄠ', "l"),
+            Map.entry((int) 'ㄡ', "！"),
+            Map.entry((int) 'ㄢ', "0"),
+            Map.entry((int) 'ㄣ', "p"),
+            Map.entry((int) 'ㄤ', "："),
+            Map.entry((int) 'ㄥ', "？"),
+//            Map.entry((int) 'ㄦ', "、"),
+            Map.entry((int) 'ˇ', "3"),
+            Map.entry((int) 'ˋ', "4"),
+            Map.entry((int) 'ˊ', "6"),
+            Map.entry((int) '˙', "7")
+    );
+
+    private void ensureNative() {
+        if (!nativeLoaded) {
+            try {
+                System.loadLibrary("keyboard");
+                nativeLoaded = true;
+            } catch (Throwable t) {
+                // swallow it—keyboard still works
+            }
+        }
+    }
+
+    private native void nativeInitAutocorrector(String path);
+    private native Suggestion nativeSuggest(String prefix, boolean autocap, String contractionPath);
+    public static native void nativeAddWord(String word, String path, String contractionPath);
+    public static native void nativeRemoveWord(String word, String path, String contractionPath);
+    private String getContractionPath() {
+        return getFilesDir().getAbsolutePath() + "/test_files/user_contractions.txt";
+    }
+
+    private static native void nativeSetLayout(String layout, String path);
+
+    private Set<String> dictCache = null;
+
+    private Set<String> loadDictOnce() throws IOException {
+        if (dictCache == null) {
+            File f = new File(getFilesDir(), "test_files/20k_texting.txt");
+            if (!f.exists()) {
+                copyAssetToInternal(this, "test_files/20k_texting.txt");
+                if (!f.exists()) return Set.of();
+            }
+            dictCache = new HashSet<>(Files.readAllLines(f.toPath()));
+        }
+        return dictCache;
+    }
+
+    public boolean inDictionary(String word) throws IOException {
+        return loadDictOnce().contains(word);
+    }
+
+    private void updateCompositionBarVisibility() {
+        if (kv != null && kv.getKeyboard() == chiKeyboard) {
+            zhuyinCompositionBar.setVisibility(View.VISIBLE);
+        } else {
+            zhuyinCompositionBar.setVisibility(View.GONE);
+        }
+    }
+
+    private void switchKeyboard(Keyboard k) {
+        if (kv == null || k == null) return;
+
+        currentKeyboard = k;
+
+        if (k == engKeyboard) {
+            mainKeyboardMode = MainKeyboardMode.ENGLISH;
+            lastNonPageKeyboard = engKeyboard;
+        } else if (k == chiKeyboard) {
+            mainKeyboardMode = MainKeyboardMode.CHINESE;
+            lastNonPageKeyboard = chiKeyboard;
+        }
+
+        updateSymbolLabels();
+        updateEditorLabels();
+        updateNumpadLabels();
+
+        if (k == chiKeyboard && chineseInputType == ChineseInputType.ZHUYIN) {
+            updateZhuyinLongPressHints();
+        }
+
+        if (isHeld) {
+            setSymbolLongPressHints(true);
+        }
+
+        kv.setKeyboard(k);
+
+        updateCompositionBarVisibility();
+        updateModeSwitchLabel();
+        applyCapsState();
+        kv.invalidateAllKeys();
+    }
+
+    private Keyboard getMainKeyboardForMode() {
+        return mainKeyboardMode == MainKeyboardMode.CHINESE ? chiKeyboard : engKeyboard;
+    }
+
+    private boolean isPageKeyboard(Keyboard k) {
+        return k != engKeyboard && k != chiKeyboard;
+    }
+
+    private void returnToLastNonPageKeyboard() {
+        switchKeyboard(getMainKeyboardForMode());
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+
+        ClipboardManager clipboard =
+                (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+
+        Handler mainHandler = new Handler(Looper.getMainLooper());
+
+        if (clipboard != null) {
+            clipboard.addPrimaryClipChangedListener(() -> {
+                mainHandler.post(() -> {  // ← force onto main thread
+                    if (clipboard.hasPrimaryClip()) {
+                        ClipData clipData = clipboard.getPrimaryClip();
+                        if (clipData != null && clipData.getItemCount() > 0) {
+                            CharSequence text = clipData.getItemAt(0).getText();
+                            if (text != null && !text.toString().isEmpty()) {
+                                String newText = text.toString();
+                                SharedPreferences prefs = getSharedPreferences("keyboard_settings", MODE_PRIVATE);
+                                String lastSaved = prefs.getString("clipboard_text_1", "");
+                                if (!newText.equals(lastSaved)) {
+                                    // Don't update if we're mid-gesture (kv is processing a touch)
+                                    InputConnection ic = getCurrentInputConnection();
+                                    if (ic != null) {
+                                        copyToClipboard(newText);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+        }
+    }
+
+    @Override
+    public View onCreateInputView() {
+        SharedPreferences prefs = getSharedPreferences("keyboard_settings", MODE_PRIVATE);
+        defaultCaps = prefs.getBoolean("capsToggle", true);
+        defaultAutocor = prefs.getBoolean("autocorToggle", true);
+        zhuyinLongPressQwerty = prefs.getBoolean("zhuyinLongPressQwerty", true);
+        caps_state = defaultCaps ? 1 : 0;
+        init_emoji_variations();
+        init_emoji_symbols();
+        initSoundPool();
+        editEmojiArray();
+
+        root = buildKeyboardView();
+        applyCapsState();
+        copyAssetToInternal(getApplicationContext(), "test_files/20k_texting.txt");
+        copyAssetToInternal(getApplicationContext(), "tsi_custom.json");
+        // Create contractions file if needed
+        File contractionFile = new File(getFilesDir(), "test_files/user_contractions.txt");
+        if (!contractionFile.exists()) {
+            try { contractionFile.createNewFile(); } catch (IOException e) {}
+        }
+        copyAssetToInternal(getApplicationContext(), "test_files/user_contractions.txt");
+        zhuyinTyper = new ZhuyinTyper(getApplicationContext());
+        pinyinTyper = new PinyinTyper(getApplicationContext());
+
+        String absPath = getFilesDir().getAbsolutePath() + "/test_files/20k_texting.txt";
+        ensureNative();
+        nativeInitAutocorrector(absPath);
+
+        return root;
+    }
+
+    private void copyAssetToInternal(Context ctx, String assetName) {
+        try {
+            File outFile = new File(ctx.getFilesDir(), assetName);
+            if (outFile.exists()) return;
+
+            InputStream is = ctx.getAssets().open(assetName);
+            outFile.getParentFile().mkdirs();
+            OutputStream os = new FileOutputStream(outFile);
+
+            byte[] buffer = new byte[4096];
+            int length;
+            while ((length = is.read(buffer)) > 0) {
+                os.write(buffer, 0, length);
+            }
+
+            is.close();
+            os.close();
+        } catch (IOException e) {
+
+        }
+    }
+
+    private void commitTextAndShowLabel(String commitText) {
+        InputConnection ic = getCurrentInputConnection();
+        ic.commitText(commitText, 1);
+        setPreviewLabel(commitText);
+    }
+
+    private boolean maybeAutoReplace(InputConnection ic, String append) {
+        CharSequence beforeChar = ic.getTextBeforeCursor(1, 0);
+        char prevChar = (beforeChar != null && beforeChar.length() > 0) ? beforeChar.charAt(0) : '\0';
+
+        String beforeStr = ic.getTextBeforeCursor(50, 0).toString();
+        String trimmedStr = beforeStr.replaceAll("\\s+$", "");
+        String[] partsStr = trimmedStr.split("\\s+");
+        String lastWordStr = partsStr.length > 0 ? partsStr[partsStr.length - 1] : "";
+
+        Suggestion s = nativeLoaded && !lastWordStr.isEmpty()
+                ? nativeSuggest(lastWordStr, defaultCaps, getContractionPath())
+                : new Suggestion(new String[]{"", "", ""}, new double[]{0,0,0});
+
+        String top = s.suggestions[1];
+        double score = (s.scores.length > 0 ? s.scores[1] : 0);
+
+        if (!forceEmptySuggestions && defaultAutocor && score >= AUTO_REPLACE_THRESHOLD &&
+                !top.isEmpty() && !top.equals(lastWordStr) &&
+                prevChar != ' ' && !isSkippedAutoreplace) {
+
+            int toDelete = lastWordStr.length();
+            String newText = top + append;
+
+            ic.beginBatchEdit();
+            ic.deleteSurroundingText(toDelete, 0);
+            ic.commitText(newText, 1);
+            ic.endBatchEdit();
+
+            showSuggestions(""); // Clear UI
+
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    private void handlePaste() {
+        InputConnection ic = getCurrentInputConnection();
+        if (ic == null) return;
+
+        ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+        List<String> entries = loadClipboard();
+        String myClipboard = entries.isEmpty() ? "" : entries.get(0);
+
+        if (cm != null && cm.hasPrimaryClip()) {
+            ClipData clip = cm.getPrimaryClip();
+            if (clip != null && clip.getItemCount() > 0) {
+                ClipData.Item item = clip.getItemAt(0);
+                ClipDescription desc = clip.getDescription();
+
+                // --- 1. Prefer system clipboard for images / rich content ---
+                if (desc != null && desc.hasMimeType("image/*")) {
+                    Uri imageUri = item.getUri();
+                    if (imageUri != null) {
+                        try {
+                            InputContentInfo inputContentInfo = new InputContentInfo(
+                                    imageUri,
+                                    new ClipDescription("pasted_image", new String[]{"image/*"}),
+                                    null
+                            );
+                            boolean success = ic.commitContent(
+                                    inputContentInfo,
+                                    InputConnection.INPUT_CONTENT_GRANT_READ_URI_PERMISSION,
+                                    null
+                            );
+                            if (success) return;  // only skip to text if image failed
+                        } catch (Exception e) {
+                            // fall through
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- 2. Prefer your own clipboard history for text ---
+        if (myClipboard != null && !myClipboard.isEmpty()) {
+            ic.commitText(myClipboard, 1);
+            return;
+        }
+
+        // --- 3. Fallback to system clipboard text ---
+        if (cm != null && cm.hasPrimaryClip()) {
+            ClipData clip = cm.getPrimaryClip();
+            if (clip != null && clip.getItemCount() > 0) {
+                ClipData.Item item = clip.getItemAt(0);
+                CharSequence text = item.getText();
+                if (text != null && text.length() > 0) {
+                    ic.commitText(text, 1);
+                }
+            }
+        }
+    }
+
+    private void handleSelectAll(InputConnection ic) {
+        if (ic == null) return;
+
+        // 1) Ask the target editor to do Select All (works in most places, old and new)
+        boolean handled = ic.performContextMenuAction(android.R.id.selectAll);
+        if (handled) return;
+
+        // 2) Fallback: try ExtractedText (requests the whole buffer)
+        ExtractedTextRequest req = new ExtractedTextRequest();
+        req.hintMaxChars = 0; // no limit
+        req.hintMaxLines = 0; // no limit
+        ExtractedText et = ic.getExtractedText(req, 0);
+        if (et != null && et.text != null) {
+            int len = et.text.length();
+            ic.setSelection(0, len);
+            return;
+        }
+
+        // 3) Last resort: stitch before/after with big but finite bounds + null-safety
+        final int BIG = 100000; // safer than Integer.MAX_VALUE on older devices
+        CharSequence before = ic.getTextBeforeCursor(BIG, 0);
+        CharSequence after  = ic.getTextAfterCursor(BIG, 0);
+        int beforeLen = (before == null) ? 0 : before.length();
+        int afterLen  = (after  == null) ? 0 : after.length();
+        ic.setSelection(0, beforeLen + afterLen);
+        return;
+    }
+
+    private void updatePagePunctuationLabels(Keyboard kb) {
+        if (kb == null) return;
+
+        boolean chinese = (lastNonPageKeyboard == chiKeyboard);
+
+        for (Keyboard.Key key : kb.getKeys()) {
+            if (key.codes == null || key.codes.length == 0) continue;
+
+            int code = key.codes[0];
+
+            if (code == '<') {
+                key.label = "<";
+                continue;
+            }
+
+            if (code == '>') {
+                key.label = ">";
+                continue;
+            }
+
+            if (code == '\'') {
+                key.label = chinese ? "「" : "'";
+                continue;
+            }
+
+            if (code == '"') {
+                key.label = chinese ? "」" : "\"";
+                continue;
+            }
+
+            if (code == ',') {
+                key.label = chinese ? "，" : ",";
+                continue;
+            }
+
+            if (code == '.') {
+                key.label = chinese ? "。" : ".";
+                continue;
+            }
+
+            if (code == 32) { // SPACE
+                key.label = chinese ? "空格" : "SPACE";
+                key.icon = null;
+                key.iconPreview = null;
+                continue;
+            }
+
+            if (kb == symbolKeyboard) {
+                if (chinese && SYMBOL_TO_CHI.containsKey(code)) {
+                    key.label = SYMBOL_TO_CHI.get(code);
+                } else if (code > 0) {
+                    key.label = String.valueOf((char) code);
+                }
+            }
+        }
+    }
+
+    private void updateSymbolLabels() {
+        updatePagePunctuationLabels(symbolKeyboard);
+        updatePagePunctuationLabels(mathKeyboard);
+        updatePagePunctuationLabels(emojiKeyboard);
+    }
+
+    private void updateEditorLabels() {
+        if (editorKeyboard == null) return;
+
+        boolean chinese = (lastNonPageKeyboard == chiKeyboard);
+
+        for (Keyboard.Key key : editorKeyboard.getKeys()) {
+            if (key.codes == null || key.codes.length == 0) continue;
+
+            switch (key.codes[0]) {
+                case -63: // select toggle
+                    key.label = chinese ? "選取" : "select";
+                    break;
+                case -66: // select all
+                    key.label = chinese ? "全選" : "select all";
+                    break;
+                case -69: // copy
+                    key.label = chinese ? "複製" : "copy";
+                    break;
+                case -70: // paste
+                    key.label = chinese ? "貼上" : "paste";
+                    break;
+            }
+        }
+    }
+
+    private void updateNumpadLabels() {
+        if (numpadKeyboard == null) return;
+
+        boolean chinese = (lastNonPageKeyboard == chiKeyboard);
+
+        for (Keyboard.Key key : numpadKeyboard.getKeys()) {
+            if (key.codes == null || key.codes.length == 0) continue;
+
+            switch (key.codes[0]) {
+                case -66: // select all
+                    key.label = chinese ? "全選" : "select all";
+                    break;
+            }
+        }
+    }
+
+    private void updateLongPressHints() {
+        if (engKeyboard == null) return;
+
+        for (Keyboard.Key key : engKeyboard.getKeys()) {
+            if (key.codes == null || key.codes.length == 0) continue;
+
+            int code = key.codes[0];
+            char c = Character.toLowerCase((char) code);
+
+            // Clear first so stale hints can't survive mode changes
+            key.popupCharacters = null;
+
+            if (supersubMode) {
+                if (c >= 'a' && c <= 'z') { // Letters
+                    int idx = c - 'a';
+
+                    if (caps_state == 0) { // superscript mode
+                        key.popupCharacters = engSubArray[idx];
+                    } else { // mathbb mode
+                        key.popupCharacters = mathbbLowerEngArray[idx];
+                    }
+                } else if (c >= '0' && c <= '9') { // Numbers
+                    int d = c - '0';
+
+                    if (caps_state == 0) {
+                        key.popupCharacters = digitSubArray[d];
+                    }
+
+                    // In bold/mathbb mode, don't show a number hint
+                }
+            } else {
+                // Normal English mode: show symbol long-press hints on letters only
+                if (c >= 'a' && c <= 'z') {
+                    int idx = c - 'a';
+
+                    if (idx < longPressSymbols.length) {
+                        key.popupCharacters = longPressSymbols[idx];
+                    }
+                }
+            }
+        }
+
+        if (kv != null) {
+            kv.invalidateAllKeys();
+        }
+    }
+
+    private int getStandardZhuyinEquivalent(int primaryCode) {
+        return useEten ? ZhuyinTyper.etenToStandardCode(primaryCode) : primaryCode;
+    }
+
+    private String getZhuyinQwertyOutput(int primaryCode) {
+        int standardCode = getStandardZhuyinEquivalent(primaryCode);
+        String mapped = ZHUYIN_LONG_PRESS_QWERTY.get(standardCode);
+        if (mapped == null) {
+            return null;
+        }
+
+        if (zhuyinQwertyCaps) {
+            if (mapped.equals("⋯⋯")) {
+                return "、";
+            } else if (mapped.equals("：")) {
+                return "；";
+            } else if (mapped.equals("！")) {
+                return "（";
+            } else if (mapped.equals("？")) {
+                return "）";
+            }
+
+            if (mapped.length() == 1 && Character.isLetter(mapped.charAt(0))) {
+                return mapped.toUpperCase();
+            }
+        }
+
+        return mapped;
+    }
+
+    private void updateZhuyinLongPressHints() {
+        if (chiKeyboard == null) {
+            return;
+        }
+
+        if (chineseInputType != ChineseInputType.ZHUYIN) {
+            return;
+        }
+
+        for (Keyboard.Key key : chiKeyboard.getKeys()) {
+            if (key.codes == null || key.codes.length == 0) {
+                continue;
+            }
+
+            // Always clear first
+            key.popupCharacters = null;
+
+            if (zhuyinLongPressQwerty) {
+                int standardCode = getStandardZhuyinEquivalent(key.codes[0]);
+
+                if (standardCode == 'ㄦ') {
+                    key.popupCharacters = "⇪";
+                } else {
+                    key.popupCharacters = getZhuyinQwertyOutput(key.codes[0]);
+                }
+            }
+        }
+
+        if (kv != null) {
+            kv.invalidateAllKeys();
+        }
+    }
+
+    private void setSymbolLongPressHints(boolean show) {
+        if (kv == null) {
+            return;
+        }
+
+        for (Keyboard kb : Arrays.asList(symbolKeyboard, mathKeyboard, emojiKeyboard)) {
+            if (kb == null) {
+                continue;
+            }
+
+            for (Keyboard.Key key : kb.getKeys()) {
+                if (key.codes == null || key.codes.length == 0) {
+                    continue;
+                }
+
+                if (show) {
+                    key.popupCharacters = getPageLongPressOutput(kb, key.codes[0]);
+                } else {
+                    key.popupCharacters = null;
+                }
+            }
+        }
+
+        kv.invalidateAllKeys();
+    }
+
+    private boolean handleZhuyinLongPress(int primaryCode) {
+        if (kv.getKeyboard() != chiKeyboard || chineseInputType != ChineseInputType.ZHUYIN) {
+            return false;
+        }
+
+        if (primaryCode <= 0) {
+            return false;
+        }
+
+        int standardCode = getStandardZhuyinEquivalent(primaryCode);
+
+        if (standardCode != 'ㄦ' && !ZHUYIN_LONG_PRESS_QWERTY.containsKey(standardCode)) {
+            return false;
+        }
+
+        String pressed = String.valueOf((char) primaryCode);
+
+        if (!zhuyinLongPressQwerty) {
+            commitTextAndShowLabel(pressed);
+            return true;
+        }
+
+        if (standardCode == 'ㄦ') {
+            zhuyinQwertyCaps = !zhuyinQwertyCaps;
+            updateZhuyinLongPressHints();
+            return true;
+        }
+
+        boolean wasCaps = zhuyinQwertyCaps;
+        String mapped = getZhuyinQwertyOutput(primaryCode);
+
+        if (mapped == null) {
+            return false;
+        }
+
+        commitTextAndShowLabel(mapped);
+
+        if (wasCaps && ((mapped.length() == 1 && Character.isUpperCase(mapped.charAt(0))) || mapped.equals("、") || mapped.equals("；") || mapped.equals("（") || mapped.equals("）"))) {
+            zhuyinQwertyCaps = false;
+            updateZhuyinLongPressHints();
+        }
+
+        return true;
+    }
+    private String getPageLongPressOutput(Keyboard kb, int primaryCode) {
+        if (kb == null) {
+            return null;
+        }
+
+        if (kb == symbolKeyboard) {
+            Map<Integer, String> map = lastNonPageKeyboard == chiKeyboard ? SYMBOL_LONG_PRESS_ZH : SYMBOL_LONG_PRESS_EN;
+            return map.get(primaryCode);
+        }
+
+        if (kb == mathKeyboard) {
+            return MATH_LONG_PRESS.get(primaryCode);
+        }
+
+        if (kb == emojiKeyboard) {
+            if (primaryCode == -105) {
+                SharedPreferences prefs = getSharedPreferences("keyboard_settings", MODE_PRIVATE);
+                String variation = prefs.getString("emoji_variation", "neutral").toLowerCase();
+
+                if (variation.equals("masculine")) {
+                    return "🤷‍♂️";
+                } else if (variation.equals("feminine")) {
+                    return "🤷‍♀️";
+                } else {
+                    return "🤷";
+                }
+            }
+
+            if (primaryCode == -106) {
+                SharedPreferences prefs = getSharedPreferences("keyboard_settings", MODE_PRIVATE);
+                String variation = prefs.getString("emoji_variation", "neutral").toLowerCase();
+
+                if (variation.equals("masculine")) {
+                    return "🧍‍♂️";
+                } else if (variation.equals("feminine")) {
+                    return "🧍‍♀️";
+                } else {
+                    return "🧍";
+                }
+            }
+
+            return EMOJI_LONG_PRESS.get(primaryCode);
+        }
+
+        return null;
+    }
+
+    private void handleLongPress(int primaryCode) {
+        if (primaryCode == -1 || (primaryCode == -14 && kv.getKeyboard() == symbolKeyboard) || (primaryCode == -2 && kv.getKeyboard() == mathKeyboard)) { // Long press CAPS = copy/paste or the symbols 1/2 button or math 2/2 button
+            InputConnection ic = getCurrentInputConnection();
+            if (ic != null) {
+                ExtractedText et = ic.getExtractedText(new ExtractedTextRequest(), 0);
+                CharSequence selected = ic.getSelectedText(0);
+                if (et != null && et.selectionStart != et.selectionEnd) {
+                    // copy
+                    ic.performContextMenuAction(android.R.id.copy);
+                    copyToClipboard(selected.toString());
+                    switchKeyboard(currentKeyboard);
+                } else {
+                    // paste
+                    handlePaste();
+                    switchKeyboard(currentKeyboard);
+//                    ic.performContextMenuAction(android.R.id.paste);
+                }
+            }
+            return;
+        }
+
+        if (-99 <= primaryCode && primaryCode <= -90) { // long press to delete clipboard item
+//            int clipboardCode = primaryCode + 90;
+//            clipboardCode = -clipboardCode; // get code without -9 in front
+//            clipboardCode = clipboardCode + 1; // since codes start from 0 but clipboard start from 1
+//
+//            SharedPreferences prefs = getSharedPreferences("keyboard_settings", MODE_PRIVATE);
+//            String clipboardPref = "clipboard_text_" + clipboardCode;
+//            prefs.edit().putString(clipboardPref, "").apply();
+//            return;
+
+            int clipboardCode = primaryCode + 90;
+            clipboardCode = -clipboardCode;
+            clipboardCode = clipboardCode + 1; // index 1..10
+
+            List<String> entries = loadClipboard();
+            if (clipboardCode - 1 < entries.size()) {
+                entries.remove(clipboardCode - 1); // list is 0-based
+            }
+
+            saveClipboard(entries);
+            updateClipboardLabel();
+            kv.invalidateAllKeys();
+            return;
+        }
+
+        InputConnection ic = getCurrentInputConnection();
+        Keyboard kb = kv.getKeyboard();
+
+        if (kb == chiKeyboard && primaryCode == '，') {
+            commitTextAndShowLabel("。");
+            return;
+        }
+
+        if (handleZhuyinLongPress(primaryCode)) {
+            return;
+        }
+
+        String pageOutput = getPageLongPressOutput(kb, primaryCode);
+        if (pageOutput != null) {
+            commitTextAndShowLabel(pageOutput);
+
+            if (kb == emojiKeyboard) {
+                showSuggestions("");
+            } else {
+                updateSuggestion(ic);
+            }
+
+            return;
+        }
+
+        switch (primaryCode) {
+            case -2: // symbols -> numpad for English or select all for Zhuyin
+                if (kv.getKeyboard() == engKeyboard) {
+                    switchKeyboard(numpadKeyboard);
+                } else if (kv.getKeyboard() == chiKeyboard) {
+                    handleSelectAll(ic);
+                }
+                break;
+            case 44: // Eng comma -> select all
+                handleSelectAll(ic);
+                break;
+            case -10: // symbols keyboard long press to numpad
+                switchKeyboard(numpadKeyboard);
+                break;
+            case 46: // full stop -> delete last word or enter '//'
+                if (kv.getKeyboard() == numpadKeyboard) {
+                    commitTextAndShowLabel("˙");
+                    updateSuggestion(ic);
+                } else {
+                    if (useFullStopComment) {
+                        commitTextAndShowLabel("//");
+                    }
+                    else {
+                        deleteLastWordWithSpace();
+                        showSuggestions("");
+                    }
+                }
+                break;
+            case -4: // zhuyin enter -> open settings, eng enter -> skip word, numpad enter = new line
+                if (kv.getKeyboard() == chiKeyboard) {
+                    PackageManager manager = getPackageManager();
+                    Intent launchIntent = manager.getLaunchIntentForPackage("com.hllpp.keyboard");
+                    launchIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+                    startActivity(launchIntent);
+                } else if (kv.getKeyboard() == numpadKeyboard) {
+                    // Now send the Enter/new line per IME options
+                    EditorInfo editorInfo = getCurrentInputEditorInfo();
+                    boolean multiline =
+                            editorInfo != null &&
+                                    (editorInfo.inputType & android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE) != 0;
+
+                    if (multiline) {
+                        ic.commitText("\n", 1);
+                    } else {
+                        ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER));
+                        ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER));
+                    }
+
+                    // Clear UI and mark bar inactive
+                    showSuggestions("");
+                    break;
+                }
+                else {
+                    if (ic != null) {
+                        // check the bar, not the IC text
+                        if (forceEmptySuggestions) {
+                            // second toggle: restore normal suggestions
+                            forceEmptySuggestions = false;
+                        } else {
+                            // only enter force-empty mode if the middle slot is already empty
+                            String[] currentWords = new String[]{
+                                    ((TextView) suggestionBar.getChildAt(1)).getText().toString(),
+                                    ((TextView) suggestionBar.getChildAt(2)).getText().toString(),
+                                    ((TextView) suggestionBar.getChildAt(3)).getText().toString()
+                            };
+                            if (currentWords[1].isEmpty()) {
+                                forceEmptySuggestions = true;
+                                caps_state = 0;
+                                applyCapsState();
+                                showSuggestions("");
+                            } else {
+                                isSkippedAutoreplace = true;
+                                showSuggestions("");
+                            }
+                        }
+                    }
+                }
+                break;
+            case '0': case '1': case '2': case '3': case '4':
+            case '5': case '6': case '7': case '8': case '9': {
+                int d = primaryCode - '0';
+                if (supersubMode) {
+                    if (caps_state == 0) {
+                        commitTextAndShowLabel(digitSubArray[d]);
+                    } else {
+                        commitTextAndShowLabel(mathbbDigitArray[d]);
+                    }
+                } else if (kv.getKeyboard() == chiKeyboard && chineseInputType == ChineseInputType.PINYIN) {
+                    commitTextAndShowLabel(Character.toString((char) (primaryCode)));
+                    return;
+                } else {
+                    commitTextAndShowLabel(digitSuperArray[d]);
+                }
+                updateSuggestion(ic);
+                break;
+            }
+            default:
+                if (supersubMode) {
+                    char c = (char) primaryCode;
+
+                    if (Character.isLetter(c)) {
+                        int idx = Character.toLowerCase(c) - 'a';
+                        if (idx >= 0 && idx < engSubArray.length) {
+                            if (caps_state == 0) {
+                                commitTextAndShowLabel(engSubArray[idx]);
+                            } else {
+                                commitTextAndShowLabel(mathbbLowerEngArray[idx]);
+                            }
+                            return;
+                        }
+                    } else if (Character.isDigit(c)) {
+                        int d = c - '0';
+                        if (caps_state == 0) {
+                            commitTextAndShowLabel(digitSubArray[d]);
+                        }
+                        return;
+                    }
+                }
+
+                // Pinyin long press: literally commit the key, do not buffer it, suggest Chinese, or run English autocorrect.
+                if (kv.getKeyboard() == chiKeyboard && chineseInputType == ChineseInputType.PINYIN && primaryCode > 0 && Character.isLetter((char) primaryCode)) {
+                    String text = String.valueOf(Character.toLowerCase((char) primaryCode));
+                    commitTextAndShowLabel(text);
+                    return;
+                }
+
+                // hold down eng letters for symbols, zhuyin letters to commit the letter
+                String symbol = "";
+                String[] longPressText = longPressSymbols;
+                String[] letterArray = engLetterArray;
+
+                for (int i=0; i<letterArray.length; i++) {
+                    if (String.valueOf((char) primaryCode).equals(letterArray[i])) {
+
+                        // fallback to normal longPressText
+                        if (i < longPressText.length) {
+                            symbol = longPressText[i];
+                        }
+
+                        if (!maybeAutoReplace(ic, symbol)) {
+                            commitTextAndShowLabel(symbol);
+                        }
+                    }
+                }
+                break;
+        }
+    }
+
+    @Override
+    public void onPress(int primaryCode) {
+
+        if (isKeySoundEnabled) {
+            playClick();
+        }
+
+        isLongPress = false;
+
+        longPressRunnable = () -> {
+            isLongPress = true;
+            handleLongPress(primaryCode);
+        };
+        longPressHandler.postDelayed(longPressRunnable, LONG_PRESS_MS);
+
+        if (NO_POPUP.contains(primaryCode)) return;
+
+        if (-99 <= primaryCode && primaryCode <= -90) return; // clipboard
+        if (-79 <= primaryCode && primaryCode <= -60) return; // text editor
+//        if (-1049 <= primaryCode && primaryCode <= -1000) return; // math symbols
+
+        // 1) Un‑scale into keyboard coords (you already have scaleX/scaleY set up)
+        int kx = (int)((lastTouchX - kv.getPaddingLeft()) / scaleX);
+        int ky = (int)((lastTouchY - kv.getPaddingTop())  / scaleY);
+
+        // 2) Collect all keys with that code whose box contains the touch
+        List<Keyboard.Key> matches = new ArrayList<>();
+        for (Keyboard.Key key : kv.getKeyboard().getKeys()) {
+            if (key.codes[0] == primaryCode) {
+                if ( kx >= key.x
+                        && kx <  key.x + key.width
+                        && ky >= key.y
+                        && ky <  key.y + key.height) {
+                    matches.add(key);
+                }
+            }
+        }
+
+        // 3) Pick the one whose center is closest to (kx,ky)
+        tapped = null;
+        if (!matches.isEmpty()) {
+            double bestDist = Double.MAX_VALUE;
+            for (Keyboard.Key key : matches) {
+                double centerX = key.x + key.width  * 0.5;
+                double centerY = key.y + key.height * 0.5;
+                double dx = kx - centerX, dy = ky - centerY;
+                double dist = dx*dx + dy*dy;
+                if (dist < bestDist) {
+                    bestDist = dist;
+                    tapped = key;
+                }
+            }
+        }
+
+        // 4) If we found one, show the popup above it
+        if (tapped != null && tapped.codes[0] == primaryCode) {
+            showKeyPreview(tapped, primaryCode);
+        }
+    }
+
+    private void setPreviewLabel(CharSequence label) {
+        if (keyPreviewPopup != null && keyPreviewPopup.isShowing()) {
+            previewText.setText(label);
+            previewText.invalidate();
+        }
+    }
+
+
+    public void showKeyPreview(Keyboard.Key key, int code) {
+        if (code == -11) { // don't show for emoji switcher
+            return;
+        }
+
+        CharSequence text;
+
+        if (supersubMode) {
+            // Always use the label you drew on the key
+            text = key.label;
+        } else {
+            char curr_char = (char) code;
+            if (caps_state > 0 && code > 0 && Character.isLetter(curr_char)) {
+                curr_char = Character.toUpperCase(curr_char);
+            }
+            // Only use key.label for non-letters
+            if (code > 0 && Character.isLetter((char) code)) {
+                text = String.valueOf(curr_char);
+            } else {
+                text = (key.label != null ? key.label : String.valueOf(curr_char));
+            }
+        }
+
+        previewText.setText(text);
+
+        int popupX = key.x;
+        int popupY = -((kv.getHeight() - key.y) + key.height);
+        popupY -= Math.round(4f * getResources().getDisplayMetrics().density);
+
+        if (keyPreviewPopup.isShowing()) {
+            keyPreviewPopup.update(kv, popupX, popupY, key.width, key.height);
+        } else {
+            keyPreviewPopup.setWidth(key.width);
+            keyPreviewPopup.setHeight(key.height);
+            keyPreviewPopup.showAsDropDown(kv, popupX, popupY);
+        }
+    }
+
+    @Override
+    public void onRelease(int primaryCode) {
+        longPressHandler.removeCallbacks(longPressRunnable);
+        if (keyPreviewPopup != null && keyPreviewPopup.isShowing()) {
+            keyPreviewPopup.dismiss();
+        }
+    }
+
+    private void initSoundPool() {
+        soundPool = new SoundPool(20, AudioManager.STREAM_MUSIC, 0);
+
+        SharedPreferences prefs = getSharedPreferences("keyboard_settings", MODE_PRIVATE);
+        String soundEffect = prefs.getString("key_sound_effect", "click").toLowerCase();
+        int soundEffectId = getResources().getIdentifier(soundEffect, "raw", getPackageName());
+        clickSoundId = soundPool.load(this, soundEffectId, 1);
+    }
+
+    private void playClick() {
+        if (soundPool != null && clickSoundId != 0) {
+            soundPool.play(clickSoundId, 1.0f, 1.0f, 1, 0, 1.0f);
+        }
+    }
+
+    private boolean handleSymbolTap(InputConnection ic, int primaryCode) {
+        if (kv == null) return false;
+
+        Keyboard current = kv.getKeyboard();
+        if (current != symbolKeyboard && current != mathKeyboard && current != emojiKeyboard) {
+            return false;
+        }
+
+        if (lastNonPageKeyboard != chiKeyboard) return false;
+
+        if (primaryCode == '\'') {
+            ic.commitText("「", 1);
+            showSuggestions("");
+            return true;
+        }
+
+        if (primaryCode == '"') {
+            ic.commitText("」", 1);
+            showSuggestions("");
+            return true;
+        }
+
+        String mapped = SYMBOL_TO_CHI.get(primaryCode);
+        if (mapped == null) return false;
+
+        ic.commitText(mapped, 1);
+        showSuggestions("");
+        return true;
+    }
+    @Override
+    public void onKey(int primaryCode, int[] keyCodes) {
+
+        if (primaryCode == 0) {
+            return;
+        }
+
+        if (isLongPress) {
+            return;
+        }
+
+        if (forceEmptySuggestions && kv != null && kv.getKeyboard() == engKeyboard) {
+            InputConnection ic = getCurrentInputConnection();
+            if (primaryCode == -1) { // caps
+                handleCapsPress();
+            } else if (ic != null && primaryCode != Keyboard.KEYCODE_DELETE) {
+                if (primaryCode >= 0) {
+                    char pc = (char) primaryCode;
+
+                    if (Character.isLetter(pc)) {
+                        pc = Character.toLowerCase(pc); // normalize base
+                        if (caps_state > 0) {
+                            pc = Character.toUpperCase(pc);
+                        }
+                    }
+
+                    ic.commitText(String.valueOf(pc), 1);
+                } else {
+                    ic.commitText("", 1);
+                }
+            } else if (primaryCode == Keyboard.KEYCODE_DELETE){
+                // First, see if there's any selected text
+                CharSequence selected = ic.getSelectedText(0);
+                if (selected != null && selected.length() > 0) {
+                    // If so, replace it (commit empty string) and return
+                    ic.commitText("", 1);
+                } else {
+                    handleDelete();
+                }
+            }
+            return;
+        }
+
+        if (-99 <= primaryCode && primaryCode <= -90) {
+            // clipboard button
+            int clipboardCode = primaryCode + 90;
+            clipboardCode = -clipboardCode; // get code without -9 in front
+            clipboardCode = clipboardCode + 1; // since codes start from 0 but clipboard start from 1
+
+            SharedPreferences prefs2 = getSharedPreferences("keyboard_settings", MODE_PRIVATE);
+            String clipboardPref = "clipboard_text_" + clipboardCode;
+            String clipboardText = prefs2.getString(clipboardPref, "");
+
+            if (!clipboardText.isEmpty()) {
+                InputConnection ic = getCurrentInputConnection();
+                ic.commitText(clipboardText, 1);
+            }
+            return;
+        }
+
+        if (emojis.containsKey(primaryCode)) {
+            InputConnection ic = getCurrentInputConnection();
+            if (ic != null) {
+                ic.commitText(emojis.get(primaryCode), 1);
+            }
+            return;
+        }
+
+        if (math_symbols.containsKey(primaryCode)) {
+            InputConnection ic = getCurrentInputConnection();
+            if (ic != null) {
+                ic.commitText(math_symbols.get(primaryCode), 1);
+                updateSuggestion(ic);
+            }
+            return;
+        }
+
+        if (isChordable(primaryCode)) {
+//            synchronized (pendingKeys) {
+//                pendingKeys.add(primaryCode);
+//            }
+//            coyoteHandler.removeCallbacks(flushRunnable);
+//            coyoteHandler.postDelayed(flushRunnable, COYOTE_WINDOW_MS);
+//            return;
+            InputConnection ic = getCurrentInputConnection();
+            if (ic != null) {
+                commitChar(ic, primaryCode);
+            }
+            return;
+        }
+
+        // If it's SHIFT, handle it *before* anything else:
+        if (primaryCode == Keyboard.KEYCODE_SHIFT) {
+            handleCapsPress();
+            return;
+        }
+
+        InputConnection ic = getCurrentInputConnection();
+        if (ic == null) return;
+
+        flushPendingKeys();
+
+        if (defaultCaps && isAtLineStart() && !disableAutoCaps && caps_state == 1) {
+            applyCapsState();
+        }
+
+        if (handleSymbolTap(ic, primaryCode)) { // Chinese vs Eng symbols
+            return;
+        }
+
+        switch (primaryCode) {
+            case Keyboard.KEYCODE_DELETE:
+                isSelectToggled = false;
+                // First, see if there's any selected text
+                CharSequence selected = ic.getSelectedText(0);
+                if (selected != null && selected.length() > 0) {
+                    // If so, replace it (commit empty string) and return
+                    ic.commitText("", 1);
+                    adjustCapsAfterDeletion();
+                } else {
+                    handleDelete();
+                    adjustCapsAfterDeletion();
+                }
+                updateSuggestion(ic);
+                break;
+            case -1: // CAPS key
+                handleCapsPress();
+                break;
+            case -2: // symbols
+                showSuggestions(""); // Stop autocorrecting
+                switchKeyboard(symbolKeyboard);
+                break;
+            case -10: // back to main
+                returnToLastNonPageKeyboard();
+                break;
+            case -11: // emojis
+                switchKeyboard(emojiKeyboard);
+                showSuggestions("");
+                break;
+            case -12: // settings
+                PackageManager manager = getPackageManager();
+                Intent launchIntent = manager.getLaunchIntentForPackage("com.hllpp.keyboard");
+                launchIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+                startActivity(launchIntent);
+                break;
+            case -13: // numpad
+                switchKeyboard(numpadKeyboard);
+                break;
+            case -14: // math symbols
+                switchKeyboard(mathKeyboard);
+                break;
+            case -42: // Left arrow
+                if (isSelectToggled) {
+                    ic.sendKeyEvent(new KeyEvent(0, 0, KeyEvent.ACTION_DOWN,
+                            KeyEvent.KEYCODE_DPAD_LEFT, 0, KeyEvent.META_SHIFT_ON));
+                    ic.sendKeyEvent(new KeyEvent(0, 0, KeyEvent.ACTION_UP,
+                            KeyEvent.KEYCODE_DPAD_LEFT, 0, KeyEvent.META_SHIFT_ON));
+                } else {
+                    CharSequence before = ic.getTextBeforeCursor(1, 0);
+                    if (before != null && before.length() > 0) {
+                        ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_LEFT));
+                        ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_LEFT));
+                    }
+                }
+                return;
+            case -52: // Right arrow
+                if (isSelectToggled) {
+                    ic.sendKeyEvent(new KeyEvent(0, 0, KeyEvent.ACTION_DOWN,
+                            KeyEvent.KEYCODE_DPAD_RIGHT, 0, KeyEvent.META_SHIFT_ON));
+                    ic.sendKeyEvent(new KeyEvent(0, 0, KeyEvent.ACTION_UP,
+                            KeyEvent.KEYCODE_DPAD_RIGHT, 0, KeyEvent.META_SHIFT_ON));
+                } else {
+                    CharSequence after = ic.getTextAfterCursor(1, 0);
+                    if (after != null && after.length() > 0) {
+                        ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_RIGHT));
+                        ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_RIGHT));
+                    }
+                }
+                return;
+            case -62: // up arrow
+                if (isSelectToggled) {
+                    ic.sendKeyEvent(new KeyEvent(0, 0, KeyEvent.ACTION_DOWN,
+                            KeyEvent.KEYCODE_DPAD_UP, 0, KeyEvent.META_SHIFT_ON));
+                    ic.sendKeyEvent(new KeyEvent(0, 0, KeyEvent.ACTION_UP,
+                            KeyEvent.KEYCODE_DPAD_UP, 0, KeyEvent.META_SHIFT_ON));
+                } else {
+                    CharSequence before2 = ic.getTextBeforeCursor(1, 0);
+                    if (before2 != null && before2.length() > 0) {
+                        ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_UP));
+                        ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_UP));
+                    }
+                }
+                return;
+            case -64: // down arrow
+                if (isSelectToggled) {
+                    ic.sendKeyEvent(new KeyEvent(0, 0, KeyEvent.ACTION_DOWN,
+                            KeyEvent.KEYCODE_DPAD_DOWN, 0, KeyEvent.META_SHIFT_ON));
+                    ic.sendKeyEvent(new KeyEvent(0, 0, KeyEvent.ACTION_UP,
+                            KeyEvent.KEYCODE_DPAD_DOWN, 0, KeyEvent.META_SHIFT_ON));
+                } else {
+                    CharSequence after2 = ic.getTextAfterCursor(1, 0);
+                    if (after2 != null && after2.length() > 0) {
+                        ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_DOWN));
+                        ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_DOWN));
+                    }
+                }
+                return;
+            case -63: // select button
+                if (isSelectToggled) {
+                    // If already selecting, collapse selection to cursor (deselect)
+                    ExtractedText ext = ic.getExtractedText(new ExtractedTextRequest(), 0);
+                    if (ext != null) {
+                        ic.setSelection(ext.selectionEnd, ext.selectionEnd);
+                    }
+                    isSelectToggled = false;
+                } else {
+                    isSelectToggled = true;
+                }
+                break;
+            case -65: // leftest
+                ic.setSelection(0, 0);
+                break;
+//            case -66: // select all
+//                CharSequence selectAllText = ic.getTextBeforeCursor(Integer.MAX_VALUE, 0)
+//                        .toString() + ic.getTextAfterCursor(Integer.MAX_VALUE, 0).toString();
+//                ic.setSelection(0, selectAllText.length());
+//                break;
+            case -66: // select all
+                ic = getCurrentInputConnection();
+                if (ic == null) break;
+
+                // 1) Ask the target editor to do Select All (works in most places, old and new)
+                boolean handled = ic.performContextMenuAction(android.R.id.selectAll);
+                if (handled) break;
+
+                // 2) Fallback: try ExtractedText (requests the whole buffer)
+                ExtractedTextRequest req = new ExtractedTextRequest();
+                req.hintMaxChars = 0; // no limit
+                req.hintMaxLines = 0; // no limit
+                ExtractedText et = ic.getExtractedText(req, 0);
+                if (et != null && et.text != null) {
+                    int len = et.text.length();
+                    ic.setSelection(0, len);
+                    break;
+                }
+
+                // 3) Last resort: stitch before/after with big but finite bounds + null-safety
+                final int BIG = 100000; // safer than Integer.MAX_VALUE on older devices
+                CharSequence before = ic.getTextBeforeCursor(BIG, 0);
+                CharSequence after  = ic.getTextAfterCursor(BIG, 0);
+                int beforeLen = (before == null) ? 0 : before.length();
+                int afterLen  = (after  == null) ? 0 : after.length();
+                ic.setSelection(0, beforeLen + afterLen);
+                break;
+            case -67: // rightest
+                et = ic.getExtractedText(new ExtractedTextRequest(), 0);
+                if (et != null && et.text != null) {
+                    int end = et.text.length();
+                    ic.setSelection(end, end);
+                }
+                break;
+            case -68: // cut
+                CharSequence cutText = ic.getSelectedText(0);
+                if (cutText != null) {
+                    copyToClipboard(cutText.toString());
+                    ic.performContextMenuAction(android.R.id.cut);
+                    adjustCapsAfterDeletion();
+                    isSelectToggled = false;
+                }
+                break;
+            case -69: // copy
+                CharSequence copyText = ic.getSelectedText(0);
+                if (copyText != null) {
+                    ic.performContextMenuAction(android.R.id.copy);
+                    copyToClipboard(copyText.toString());
+                    isSelectToggled = false;
+                }
+                break;
+            case -70: // paste
+                SharedPreferences prefs = getSharedPreferences("keyboard_settings", MODE_PRIVATE);
+                String pasteText = prefs.getString("clipboard_text_1", "");
+                if (pasteText != null) {
+                    handlePaste();
+//                    ic.performContextMenuAction(android.R.id.paste);
+//                    ic.commitText(pasteText, 1);
+                    isSelectToggled = false;
+                }
+                break;
+            case -71: // invis key
+                break;
+            case -60: // Undo
+                break;
+            case -61: // Redo
+                break;
+            case 61: // equal key for numpad
+                String expr = getCurrentExpression();
+                if (expr.isEmpty() || expr.charAt(expr.length() - 1) != '=') {
+                    ic.commitText("=", 1);
+                } else { // User wanted to calculate ==
+                    try {
+                        // remove the '=' at the end before evaluation
+                        expr = expr.substring(0, expr.length() - 1);
+                        expr = normalizeSuperscripts(expr);
+                        expr = normalizeMathSymbols(expr);
+                        double res = evaluateExpression(expr);  // returns primitive double
+
+                        String resultStr;
+                        if (Math.abs(res - Math.rint(res)) < 1e-9) {
+                            resultStr = String.valueOf((long) Math.round(res));
+                        } else {
+                            // Otherwise keep decimal form
+                            resultStr = String.valueOf(res);
+                        }
+
+                        ic.deleteSurroundingText(expr.length() + 1, 0); // Rmb the = deleted in param
+                        ic.commitText(resultStr, 1);
+                    } catch (Exception e) {
+                        // fallback if invalid
+                        ic.commitText("=", 1);
+                    }
+                }
+                break;
+            case -90: case -91: case -92: case -93: case -94:
+            case -95: case -96: case -97: case -98: case -99:
+                // clipboard button
+                int clipboardCode = primaryCode + 90;
+                clipboardCode = -clipboardCode; // get code without -9 in front
+                clipboardCode = clipboardCode + 1; // since codes start from 0 but clipboard start from 1
+
+                SharedPreferences prefs2 = getSharedPreferences("keyboard_settings", MODE_PRIVATE);
+                String clipboardPref = "clipboard_text_" + clipboardCode;
+                String clipboardText = prefs2.getString(clipboardPref, "");
+
+                if (!clipboardText.isEmpty()) {
+                    ic.commitText(clipboardText, 1);
+                }
+                return;
+            default: {
+                if (primaryCode > 0 && (isAlphabet(primaryCode) || (kv.getKeyboard() != engKeyboard && kv.getKeyboard() != symbolKeyboard && kv.getKeyboard() != mathKeyboard && kv.getKeyboard() != clipKeyboard && primaryCode != Keyboard.KEYCODE_DONE))) {
+                    commitChar(ic, primaryCode);
+                    updateSuggestion(ic);
+                    return;
+                }
+                // Figure out the last word before space
+                String lastWord;
+
+                if (primaryCode == Keyboard.KEYCODE_DONE) {
+                    CharSequence beforeCs = ic.getTextBeforeCursor(50, 0);
+                    String raw = (beforeCs == null ? "" : beforeCs.toString());
+                    String trimmed = raw.replaceAll("\\s+$", ""); // Trim trailing whitespace
+                    String[] parts = (trimmed.isEmpty() ? new String[0] : trimmed.split("\\s+"));
+                    lastWord = parts.length > 0 ? parts[parts.length - 1] : "";
+                } else {
+                    lastWord = getLastWordOnCurrentLine(ic);
+                }
+
+                // Ask JNI for suggestions on lastWord
+                Suggestion s = nativeLoaded && !lastWord.isEmpty()
+                        ? nativeSuggest(lastWord, defaultCaps, getContractionPath())
+                        : new Suggestion(new String[]{"", "", ""}, new double[]{0, 0, 0});
+                String top = s.suggestions[1];
+                double score = s.scores.length > 0 ? s.scores[1] : 0;
+
+                // If we should auto‑replace:
+                CharSequence beforeChar = ic.getTextBeforeCursor(1, 0);
+                char prevChar = (beforeChar != null && beforeChar.length() > 0) ? beforeChar.charAt(0) : '\0';
+
+                if (primaryCode == Keyboard.KEYCODE_DONE) {
+                    if (kv.getKeyboard() == numpadKeyboard) {
+                        expr = getCurrentExpression();
+                        try {
+                            expr = normalizeSuperscripts(expr);
+                            expr = normalizeMathSymbols(expr);
+                            double res = evaluateExpression(expr);  // returns primitive double
+
+                            String resultStr;
+                            if (Math.abs(res - Math.rint(res)) < 1e-9) {
+                                resultStr = String.valueOf((long) Math.round(res));
+                            } else {
+                                // Otherwise keep decimal form
+                                resultStr = String.valueOf(res);
+                            }
+
+                            ic.commitText("=" + resultStr, 1);
+
+                            // Clear UI and mark bar inactive
+                            isSkippedAutoreplace = false;
+                            showSuggestions("");
+                            break;
+                        } catch (Exception e) {
+                            // fallback if invalid, swallow it
+                        }
+                    } else if (kv.getKeyboard() == engKeyboard) {
+                        // Use EXACTLY what's currently shown in the bar
+                        String currentWord = getLastWordOnCurrentLine(ic);
+
+                        if (defaultAutocor && score >= AUTO_REPLACE_THRESHOLD && !top.isEmpty() && !top.equals(lastWord) && prevChar != ' ' && !isSkippedAutoreplace) {
+                            // Accept the visible center suggestion
+                            safeReplaceLastWord(ic, currentWord, top);
+                        }
+
+                        if (caps_state != 2) {
+                            resetCaps();
+                        }
+                    }
+
+                    // Now send the Enter/new line per IME options
+                    EditorInfo editorInfo = getCurrentInputEditorInfo();
+                    boolean multiline =
+                            editorInfo != null &&
+                                    (editorInfo.inputType & android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE) != 0;
+
+                    if (multiline) {
+                        ic.commitText("\n", 1);
+                    } else {
+                        ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER));
+                        ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER));
+                    }
+
+                    // Clear UI and mark bar inactive
+                    showSuggestions("");
+                    break;
+                } else if (defaultAutocor && score >= AUTO_REPLACE_THRESHOLD && !top.isEmpty() && !top.equals(lastWord) && prevChar != ' ' && !isSkippedAutoreplace) {
+                    int toDelete = lastWord.length();
+                    String newText = top + (primaryCode == Keyboard.KEYCODE_DONE ? "\n" : (char)(primaryCode));
+
+                    ic.beginBatchEdit();
+                    ic.deleteSurroundingText(toDelete, 0);
+                    ic.commitText(newText, 1);
+                    ic.endBatchEdit();
+
+                    showSuggestions(""); // Clear UI
+                    break;
+                } else {
+
+                    if (isSkippedAutoreplace && (primaryCode == ' ' || primaryCode == '\n' || primaryCode == '\r')) {
+                        isSkippedAutoreplace = false;
+                    }
+
+                    if (kv.getKeyboard() == chiKeyboard) {
+                        commitChar(ic, primaryCode);
+                        updateSuggestion(ic);
+                    } else {
+                        ic.commitText(Character.toString((char) (primaryCode)), 1);
+                    }
+
+                    // Auto-cap if punctuation (e.g., after ". ") ans space
+                    if (primaryCode == 32 && shouldAutoCap() && defaultCaps && !disableAutoCaps && caps_state != 2) {
+                        caps_state = 1;
+                        applyCapsState();
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    private void updateModeSwitchLabel() {
+        if (kv == null || kv.getKeyboard() == null) return;
+
+//        SharedPreferences prefs = getSharedPreferences("keyboard_settings", MODE_PRIVATE);
+//        String keyboardLayout = prefs.getString("keyboard_layout", "qwerty").toLowerCase();
+
+        for (Keyboard.Key key : kv.getKeyboard().getKeys()) {
+            if (key.codes[0] == -10) { // abc <-> symbols key
+                if (lastNonPageKeyboard == chiKeyboard) {
+                    key.label = "中文"; // show 中文 when on Zhuyin
+                } else {
+                    key.label = "abc"; // default
+                }
+                break;
+            }
+        }
+        kv.invalidateAllKeys(); // refresh display
+    }
+
+
+    private void safeReplaceLastWord(InputConnection ic, String lastWord, String replacement) {
+        CharSequence beforeCs = ic.getTextBeforeCursor(50, 0);
+        if (beforeCs == null) return;
+
+        String before = beforeCs.toString();
+        int lastNewline = Math.max(before.lastIndexOf('\n'), before.lastIndexOf('\r'));
+        String currentLine = lastNewline == -1 ? before : before.substring(lastNewline + 1);
+        currentLine = currentLine.replaceAll("\\s+$", "");
+
+        if (currentLine.endsWith(lastWord)) {
+            int deleteCount = lastWord.codePointCount(0, lastWord.length()); // more accurate for emojis
+            ic.beginBatchEdit();
+            ic.deleteSurroundingText(deleteCount, 0);
+            ic.commitText(replacement, 1);
+            ic.endBatchEdit();
+        }
+    }
+
+    private String getCurrentExpression() {
+        InputConnection ic = getCurrentInputConnection();
+        if (ic == null) return "";
+        ExtractedText et = ic.getExtractedText(new ExtractedTextRequest(), 0);
+        return et != null ? et.text.toString() : "";
+    }
+
+    private static double evaluateExpression(String expr) throws Exception {
+        // 1. Tokenize
+        List<String> tokens = new ArrayList<>();
+        StringBuilder num = new StringBuilder();
+        for (char c : expr.toCharArray()) {
+            if (Character.isDigit(c) || c == '.') {
+                num.append(c);
+            } else if ("+-*/()^".indexOf(c) >= 0) {
+                if (num.length() > 0) {
+                    tokens.add(num.toString());
+                    num.setLength(0);
+                }
+
+                String tok = Character.toString(c);
+
+                // Implicit multiplication: number or ')' followed by '('
+                if (tok.equals("(") &&
+                        !tokens.isEmpty() &&
+                        (tokens.get(tokens.size() - 1).matches("\\d+(\\.\\d+)?") || tokens.get(tokens.size() - 1).equals(")"))) {
+                    tokens.add("*");
+                }
+
+                if (tok.equals("-")) {
+                    // unary minus handling
+                    String prev = tokens.isEmpty() ? "" : tokens.get(tokens.size() - 1);
+                    if (tokens.isEmpty() || "+-*/%^(".contains(prev)) {
+                        tokens.add("0");
+                    }
+                }
+
+                tokens.add(tok);
+            } else if (c == '%') {
+                if (num.length() > 0) {
+                    // Turn the number into a percentage
+                    double val = Double.parseDouble(num.toString()) / 100.0;
+                    tokens.add(String.valueOf(val));
+                    num.setLength(0);
+                } else {
+                    throw new Exception("Unexpected %");
+                }
+            } else if (!Character.isWhitespace(c)) {
+                throw new Exception("Invalid char: " + c);
+            }
+        }
+        if (num.length() > 0) {
+            tokens.add(num.toString());
+        }
+
+        // 2. Infix to Postfix (Shunting-yard)
+        Map<String, Integer> prec = Map.of(
+                "+", 1, "-", 1,
+                "*", 2, "/", 2, "%", 2,
+                "^", 3
+        );
+        List<String> output = new ArrayList<>();
+        Deque<String> ops = new ArrayDeque<>();
+        for (String t : tokens) {
+            if (t.matches("\\d+(\\.\\d+)?")) { // number
+                output.add(t);
+            } else if (prec.containsKey(t)) { // operator
+                while (!ops.isEmpty() && prec.containsKey(ops.peek())) {
+                    // if right-associative operator (^) then use > instead of >=
+                    if ((t.equals("^") && prec.get(ops.peek()) > prec.get(t)) ||
+                            (!t.equals("^") && prec.get(ops.peek()) >= prec.get(t))) {
+                        output.add(ops.pop());
+                    } else break;
+                }
+                ops.push(t);
+            } else if (t.equals("(")) {
+                ops.push(t);
+            } else if (t.equals(")")) {
+                while (!ops.isEmpty() && !ops.peek().equals("(")) {
+                    output.add(ops.pop());
+                }
+                if (ops.isEmpty() || !ops.peek().equals("("))
+                    throw new Exception("Mismatched parentheses");
+                ops.pop(); // discard "("
+            }
+        }
+        while (!ops.isEmpty()) {
+            String op = ops.pop();
+            if (op.equals("(") || op.equals(")"))
+                throw new Exception("Mismatched parentheses");
+            output.add(op);
+        }
+
+        // 3. Evaluate Postfix
+        Deque<Double> stack = new ArrayDeque<>();
+        for (String t : output) {
+            if (t.matches("\\d+(\\.\\d+)?")) {
+                stack.push(Double.parseDouble(t));
+            } else { // operator
+                double b = stack.pop(), a = stack.pop();
+                switch (t) {
+                    case "+": stack.push(a + b); break;
+                    case "-": stack.push(a - b); break;
+                    case "*": stack.push(a * b); break;
+                    case "/": stack.push(a / b); break;
+                    case "%": stack.push(a % b); break;
+                    case "^": stack.push(Math.pow(a, b)); break;
+                }
+            }
+        }
+        if (stack.size() != 1) {
+            throw new Exception("Invalid expression");
+        }
+        return stack.pop();
+    }
+
+    private static String normalizeSuperscripts(String expr) {
+        StringBuilder out = new StringBuilder();
+        StringBuilder expBuf = new StringBuilder();
+
+        for (int i = 0; i < expr.length(); i++) {
+            char c = expr.charAt(i);
+
+            if (superscripts.containsKey(c)) {
+                // Add this superscript to the buffer
+                expBuf.append(superscripts.get(c));
+            } else {
+                // If we just finished a superscript run, flush it
+                if (expBuf.length() > 0) {
+                    out.append("^(").append(expBuf).append(")");
+                    expBuf.setLength(0);
+                }
+                out.append(c);
+            }
+        }
+
+        // Flush trailing exponent at end of string
+        if (expBuf.length() > 0) {
+            out.append("^(").append(expBuf).append(")");
+        }
+
+        return out.toString();
+    }
+
+    private static String normalizeMathSymbols(String expr) {
+        StringBuilder out = new StringBuilder();
+
+        for (int i = 0; i < expr.length(); i++) {
+            char c = expr.charAt(i);
+
+            if (mathNaturalize.containsKey(c)) {
+                out.append(mathNaturalize.get(c));
+            } else {
+                out.append(c);
+            }
+        }
+        return out.toString();
+    }
+
+    private String getLastWordOnCurrentLine(InputConnection ic) {
+        CharSequence before = ic.getTextBeforeCursor(50, 0);
+        if (before == null) return "";
+
+        String raw = before.toString();
+        int lastNewline = Math.max(raw.lastIndexOf('\n'), raw.lastIndexOf('\r'));
+        if (lastNewline != -1) {
+            raw = raw.substring(lastNewline + 1);
+        }
+
+        raw = raw.replaceAll("\\s+$", "");
+        String[] parts = raw.isEmpty() ? new String[0] : raw.split("\\s+");
+        return parts.length > 0 ? parts[parts.length - 1] : "";
+    }
+
+
+    private void handleDelete() {
+        InputConnection ic = getCurrentInputConnection();
+        if (ic == null) return;
+
+        if (kv != null && kv.getKeyboard() == chiKeyboard && zhuyinBuffer.length() > 0) {
+            zhuyinBuffer.setLength(zhuyinBuffer.length() - 1);
+            zhuyinCompositionText.setText(zhuyinBuffer.toString());
+            return;
+        }
+
+        // Grab up to LOOKBACK code units before the cursor
+        CharSequence beforeCs = ic.getTextBeforeCursor(LOOKBACK, 0);
+        if (beforeCs == null || beforeCs.length() == 0) return;
+        String before = beforeCs.toString();
+
+        // Compute last grapheme boundary
+        graphemeIter.setText(before);
+        int cursor = before.length();
+        int prev = graphemeIter.preceding(cursor);
+        if (prev == BreakIterator.DONE) prev = 0;
+        int unitsToDelete = cursor - prev;
+
+        ic.deleteSurroundingText(unitsToDelete, 0);
+    }
+
+    private boolean isAlphabet(int primaryCode) {
+        return LETTERS.contains((char)(primaryCode));
+    }
+
+    private boolean isChordable(int code) {
+        // Letters, digits, or space
+        return currentKeyboard != chiKeyboard && code >= 0 && isLetterOrDigit((char)code);
+    }
+
+    private boolean isLetterOrDigit(char code) {
+        if (code >= '0' && code <= '9') {
+            return true;
+        }
+
+        return isAlphabet(code);
+    }
+
+    private void flushPendingKeys() {
+        List<Integer> batch;
+        synchronized (pendingKeys) {
+            batch = new ArrayList<>(pendingKeys);
+            pendingKeys.clear();
+        }
+        InputConnection ic = getCurrentInputConnection();
+        if (ic == null) return;
+
+        for (int code : batch) {
+            commitChar(ic, code);
+        }
+    }
+    private void commitChar(InputConnection ic, int code) {
+        if (code <= 0) {
+            return;
+        }
+
+        char c = (char) code;
+
+        if (kv != null && kv.getKeyboard() == engKeyboard && supersubMode) {
+            if (Character.isLetter(c)) {
+                int idx = Character.toLowerCase(c) - 'a';
+                if (idx >= 0 && idx < engSuperArray.length) {
+                    if (caps_state == 0) {
+                        ic.commitText(engSuperArray[idx], 1);
+                    } else {
+                        ic.commitText(mathbbEngArray[idx], 1);
+                    }
+                    return;
+                }
+            } else if (Character.isDigit(c)) {
+                int d = c - '0';
+                if (caps_state == 0) {
+                    ic.commitText(digitSuperArray[d], 1);
+                } else {
+                    ic.commitText(mathbbDigitArray[d], 1);
+                }
+                return;
+            }
+        }
+
+        // Zhuyin mode: keep in buffer instead of committing
+        if (kv != null && kv.getKeyboard() == chiKeyboard) {
+            if (c == ' ' && zhuyinBuffer.length() == 0) {
+                ic.commitText(" ", 1);
+                return;
+            } else if (c == '，') {
+                ic.commitText("，", 1);
+                return;
+            }
+
+            if (chineseInputType == ChineseInputType.PINYIN) {
+                c = Character.toLowerCase(c);
+
+                boolean validPinyinInput = (c >= 'a' && c <= 'z') || (c >= '0' && c <= '4') || c == ' ';
+
+                if (!validPinyinInput) {
+                    return;
+                }
+            }
+
+            zhuyinBuffer.append(c);
+            zhuyinCompositionText.setText(zhuyinBuffer.toString());
+            return;
+        }
+
+        // Normal mode
+        Map<Integer,String> emojis = getEmojiCodes();
+        Map<Integer,String> math_symbols = getMathCodes();
+        if (emojis.containsKey(code)) {
+            ic.commitText(emojis.get(code), 1);
+        } else if (math_symbols.containsKey(code)) {
+            ic.commitText(math_symbols.get(code), 1);
+            updateSuggestion(ic);
+        } else {
+            if (Character.isLetter(c) && caps_state > 0) {
+                c = Character.toUpperCase(c);
+            }
+            ic.commitText(String.valueOf(c), 1);
+            updateSuggestion(ic);
+            if (caps_state == 1) resetCaps();
+        }
+    }
+
+    private void updateSuggestion(InputConnection ic) {
+        if (forceEmptySuggestions) {
+            showSuggestions(""); // always blank
+            return;
+        }
+
+        CharSequence beforeCs = ic.getTextBeforeCursor(50, 0);
+        String before = (beforeCs == null ? "" : beforeCs.toString());
+        before = before.trim();
+
+        if (kv != null && kv.getKeyboard() == chiKeyboard) {
+            String prefix = zhuyinBuffer.toString();
+            showSuggestions(prefix);
+            return;
+        } else if (kv.getKeyboard() != engKeyboard) {
+            // Take everything after the last space/newline
+            int lastSpace = Math.max(before.lastIndexOf(' '), before.lastIndexOf('\n'));
+            String lastToken = (lastSpace == -1) ? before : before.substring(lastSpace + 1);
+
+            // Strip trailing '=' signs
+            lastToken = lastToken.replaceAll("=+$", "");
+
+            showSuggestions(lastToken);
+            return;
+        }
+
+        if (before.isEmpty()) {
+            showSuggestions("");
+            return;
+        }
+
+        String[] parts = before.split("\\s+");
+        String last_word = parts[parts.length - 1];
+
+        showSuggestions(last_word);
+    }
+
+    private void showSuggestions(String prefix) {
+        if (forceEmptySuggestions) {
+            return;
+        }
+
+        ensureNative();
+        suggestionBar.setVisibility(View.VISIBLE);
+
+        View scrollView = root.findViewById(R.id.suggestion_scroll);
+        LinearLayout strip = root.findViewById(R.id.suggestion_strip);
+        TextView s1 = root.findViewById(R.id.suggestion_1);
+        TextView s2 = root.findViewById(R.id.suggestion_2);
+        TextView s3 = root.findViewById(R.id.suggestion_3);
+
+        if (kv.getKeyboard() != chiKeyboard) {
+            Suggestion s = nativeLoaded && !prefix.isEmpty()
+                    ? nativeSuggest(prefix, defaultCaps, getContractionPath())
+                    : new Suggestion(new String[]{"", "", ""}, new double[]{0,0,0});
+
+            String[] words  = s.suggestions;
+            double[] scores = s.scores;
+
+            s1.setVisibility(View.VISIBLE);
+            s2.setVisibility(View.VISIBLE);
+            s3.setVisibility(View.VISIBLE);
+            scrollView.setVisibility(View.GONE);
+
+            for (int i = 0; i < 3; i++) {
+                final String word = words[i];
+                final double score = (i < scores.length ? scores[i] : 0);
+
+                TextView tv = (TextView) suggestionBar.getChildAt(i + 1);
+                tv.setText(word);
+
+                // bold if score >= threshold and middle and also not equal to current word
+                tv.setTypeface(null, score >= AUTO_REPLACE_THRESHOLD && defaultAutocor && i == 1 && !prefix.equals(word) ? Typeface.BOLD : Typeface.NORMAL);
+
+                tv.setOnClickListener(v -> {
+                    replaceCurrentWord(word, 0);
+                    showSuggestions("");
+                });
+
+                int finalI = i; // idk android studio told me to
+
+                tv.setOnLongClickListener(v -> {
+                    InputConnection ic = getCurrentInputConnection();
+                    if (ic != null && !words[1].isEmpty()) {
+
+                        CharSequence committedText = "";
+
+                        String absPath = getFilesDir().getAbsolutePath() + "/test_files/20k_texting.txt";
+
+                        // if long press on user typed word (0 if has suggestions, 1 if no suggestions), add the word to dictionary
+                        if (finalI == 0 && !words[0].isEmpty() && !words[0].equals(" ") && words[0].equals(prefix)) {
+
+                            try {
+                                if (!inDictionary(word)) {
+                                    CustomKeyboardApp.nativeAddWord(word, absPath, getContractionPath());
+                                }
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                        // if long press on suggestions, remove the suggestion from dictionary
+                        else {
+                            CustomKeyboardApp.nativeRemoveWord(word, absPath, getContractionPath());
+                            dictCache = null; // invalidate cache
+
+                            // Also remove from the 20k file directly in Java
+                            try {
+                                File f = new File(getFilesDir(), "test_files/20k_texting.txt");
+                                List<String> lines = new ArrayList<>(Files.readAllLines(f.toPath()));
+                                lines.removeIf(line -> line.trim().equalsIgnoreCase(word.trim()));
+                                try (java.io.PrintWriter pw = new java.io.PrintWriter(f)) {
+                                    for (String line : lines) pw.println(line);
+                                }
+                            } catch (IOException e) {
+                                // swallow
+                            }
+                        }
+                        showSuggestions("");
+
+                        // TODO: fix show toast
+                        showToast(committedText); // works but needs notification permission to show toast in background
+                        return true;
+                    }
+                    return false;
+                });
+            }
+        } else {
+            s1.setVisibility(View.GONE);
+            s2.setVisibility(View.GONE);
+            s3.setVisibility(View.GONE);
+            scrollView.setVisibility(View.VISIBLE);
+
+            strip.removeAllViews();
+
+            regenerateZhuyinSuggestions(prefix);
+
+            int visibleCount = Math.min(30, zhuyinSuggestions.size());
+
+            for (int i = 0; i < visibleCount; i++) {
+                String cand = zhuyinSuggestions.get(i);
+                int deleteCount = zhuyinSuggestionDeleteCounts.get(i);
+                TextView tv = makeSuggestionChip(cand, deleteCount);
+                tv.setPadding(30, 4, 30, 4);
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                );
+                lp.setMargins(20, 0, 20, 0);
+                strip.addView(tv, lp);
+            }
+
+            scrollView.setVisibility(View.VISIBLE);
+            scrollView.post(() -> {
+                scrollView.scrollTo(0, 0);
+                strip.requestLayout();
+                strip.invalidate();
+            });
+        }
+    }
+
+    private void regenerateZhuyinSuggestions(String prefix) {
+        zhuyinSuggestions.clear();
+        zhuyinSuggestionDeleteCounts.clear();
+        if (prefix.isEmpty() || prefix.equals(" ")) {
+            return;
+        }
+
+        String[][] results;
+        if (chineseInputType == ChineseInputType.PINYIN) {
+            results = pinyinTyper.suggest(prefix);
+        } else {
+            String[] split = splitPrefix(prefix);
+            results = zhuyinTyper.suggest(split, useEten);
+        }
+
+        for (String[] pair : results) {
+            zhuyinSuggestions.add(pair[0]);
+            zhuyinSuggestionDeleteCounts.add(Integer.parseInt(pair[1]));
+        }
+    }
+
+    private String[] splitPrefix(String prefix) {
+        List<String> result = new ArrayList<>();
+        int start = 0;
+
+        for (int i = 0; i < prefix.length(); i++) {
+            char c = prefix.charAt(i);
+            if (ZHUYIN_DELIMITERS.contains(c)) {
+                result.add(prefix.substring(start, i + 1));
+                start = i + 1;
+            }
+        }
+
+        if (start < prefix.length()) {
+            String tail = prefix.substring(start);
+            if (!tail.trim().isEmpty()) {  // ignore plain space
+                result.add(tail);
+            }
+        }
+
+        return result.toArray(new String[0]);
+    }
+
+
+    private TextView makeSuggestionChip(String text, int deleteCount) {
+        Context ctx = root.getContext(); // has your selected theme
+        TextView tv = new TextView(ctx);
+
+        tv.setText(text);
+        tv.setTextSize(20f);
+        tv.setPadding(12, 4, 12, 4);
+        tv.setGravity(Gravity.CENTER);
+
+        tv.setTextColor(getThemeColor(ctx, R.attr.suggestionBarTextColor));
+        tv.setClickable(true);
+        tv.setOnClickListener(v -> {
+            replaceCurrentWord(text, deleteCount);
+//            updateSuggestion(getCurrentInputConnection());
+
+            if (zhuyinExpanded) {
+                RecyclerView expanded = root.findViewById(R.id.expanded_candidates);
+                View kv = root.findViewById(R.id.keyboard_view);
+
+                expanded.setVisibility(View.GONE);
+                kv.setVisibility(View.VISIBLE);
+                zhuyinExpanded = false;
+            }
+        });
+        return tv;
+    }
+
+    private int getThemeColor(Context ctx, int attr) {
+        TypedValue typedValue = new TypedValue();
+        ctx.getTheme().resolveAttribute(attr, typedValue, true);
+        if (typedValue.resourceId != 0) {
+            return ContextCompat.getColor(ctx, typedValue.resourceId);
+        } else {
+            return typedValue.data;
+        }
+    }
+    public void showToast(CharSequence text) {
+        int duration = Toast.LENGTH_LONG;
+
+        Toast toast = Toast.makeText(this, text, duration);
+        toast.show();
+    }
+
+    private String[] splitAllZhuyinSyllables(String buf) {
+        List<String> result = new ArrayList<>();
+        int start = 0;
+        for (int i = 0; i < buf.length(); i++) {
+            char c = buf.charAt(i);
+            if (ZHUYIN_DELIMITERS.contains(c)) {
+                result.add(buf.substring(start, i + 1));
+                start = i + 1;
+            }
+        }
+        if (start < buf.length()) {
+            result.add(buf.substring(start));
+        }
+        return result.toArray(new String[0]);
+    }
+
+//    private void replaceCurrentWord(String suggestion) {
+//        InputConnection ic = getCurrentInputConnection();
+//        if (ic == null || suggestion.equals(" ") || suggestion.isEmpty()) return;
+//
+//        if (kv != null && kv.getKeyboard() == zhuyinKeyboard) {
+//            // Break buffer into syllables
+//            String[] parts = splitAllZhuyinSyllables(zhuyinBuffer.toString());
+//
+//            // Decide how many syllables the candidate should consume
+//            int consumeCount = suggestion.length();
+//
+//            // Build "first" = concatenation of the consumed syllables
+//            StringBuilder firstBuilder = new StringBuilder();
+//            for (String part : parts) {
+//                firstBuilder.append(part);
+//            }
+////            String first = firstBuilder.toString();
+//
+//            // "rest" = leftover syllables
+//            StringBuilder restBuilder = new StringBuilder();
+//            for (int i = consumeCount; i < parts.length; i++) {
+//                restBuilder.append(parts[i]);
+//            }
+//            String rest = restBuilder.toString();
+//
+//            ic.beginBatchEdit();
+//            ic.commitText(suggestion, 1);
+//            ic.endBatchEdit();
+//
+//            zhuyinBuffer.setLength(0);
+//            zhuyinBuffer.append(rest);
+//
+//            if (zhuyinBuffer.length() == 0) {
+//                zhuyinCompositionText.setText("");
+//            } else {
+//                zhuyinCompositionText.setText(zhuyinBuffer.toString());
+//            }
+//
+//            ic = getCurrentInputConnection();
+//            EditorInfo ei = getCurrentInputEditorInfo();
+//            if (ic != null && ei != null) {
+//                try {
+//                    updateSuggestion(ic);
+//                } catch (Exception e) {
+//                    // swallow it, don't let IME crash
+//                }
+//            }
+//
+//            return;
+//        }
+//
+//        deleteLastWord();
+//
+//        // Commit the suggestion in its place
+//        ic.commitText(suggestion + " ", 1);
+//
+//        showSuggestions("");
+//    }
+    private void replaceCurrentWord(String suggestion, int zhuyinDeleteCount) {
+        InputConnection ic = getCurrentInputConnection();
+        if (ic == null || suggestion.equals(" ") || suggestion.isEmpty()) return;
+
+        if (kv != null && kv.getKeyboard() == chiKeyboard) {
+            ic.beginBatchEdit();
+            ic.commitText(suggestion, 1);
+            ic.endBatchEdit();
+
+            int toDelete = Math.min(zhuyinDeleteCount, zhuyinBuffer.length());
+            zhuyinBuffer.delete(0, toDelete);
+            // Strip any leading tone marks left behind by fuzzy +/-1 length mismatch
+            while (zhuyinBuffer.length() > 0 && ZHUYIN_DELIMITERS.contains(zhuyinBuffer.charAt(0))) {
+                zhuyinBuffer.deleteCharAt(0);
+            }
+            zhuyinCompositionText.setText(zhuyinBuffer.length() == 0 ? "" : zhuyinBuffer.toString());
+
+            InputConnection ic2 = getCurrentInputConnection();
+            if (ic2 != null) {
+                try { updateSuggestion(ic2); } catch (Exception e) { }
+            }
+            return;
+        }
+
+        deleteLastWord();
+        ic.commitText(suggestion + " ", 1);
+        showSuggestions("");
+    }
+
+    private void deleteLastWord() {
+        InputConnection ic = getCurrentInputConnection();
+        // Grab up to 50 chars before cursor
+        CharSequence beforeCs = ic.getTextBeforeCursor(50, 0);
+        String before = beforeCs == null ? "" : beforeCs.toString();
+
+        // Find the start of the curr word
+        int lastNewline = Math.max(before.lastIndexOf('\n'), before.lastIndexOf('\r'));
+        int lastSpace = before.lastIndexOf(' ');
+        int wordStart = Math.max(lastNewline, lastSpace) + 1; // if no space, this is 0
+        int wordLength = before.length() - wordStart;
+
+        // Delete that many chars before the cursor
+        if (wordLength > 0) {
+            ic.deleteSurroundingText(wordLength, 0);
+        }
+    }
+
+    // same as deleteLastWord, but deletes a space if cannot find last word
+    private void deleteLastWordWithSpace() {
+        InputConnection ic = getCurrentInputConnection();
+        CharSequence beforeCs = ic.getTextBeforeCursor(50, 0);
+        String before = beforeCs == null ? "" : beforeCs.toString();
+
+        int lastNewline = Math.max(before.lastIndexOf('\n'), before.lastIndexOf('\r'));
+        int lastSpace = before.lastIndexOf(' ');
+        int wordStart = Math.max(lastNewline, lastSpace) + 1;
+        int wordLength = before.length() - wordStart;
+
+        if (wordLength > 0) {
+            ic.deleteSurroundingText(wordLength, 0);
+        }
+
+        else if (wordLength == 0) {
+            ic.deleteSurroundingText(1, 0); // hardcoded limit is better than finding number of spaces or newlines
+            deleteLastWord(); // avoid recursion
+        }
+    }
+
+
+    private static Map<Integer, String> getEmojiCodes() {
+        Map<Integer, String> emoji_codes = new HashMap<>();
+
+        for (int i = 0; i < emoji_list.length; i++) {
+            int emoji_keycode = 100 + i;
+            emoji_keycode = -emoji_keycode; // just add the negative sign for negative keycode
+
+            emoji_codes.put(emoji_keycode, emoji_list[i]);
+        }
+
+        return emoji_codes;
+    }
+
+    private void updateEmojiLabel() {
+        for (Keyboard.Key key : emojiKeyboard.getKeys()) {
+
+            for (int i = 0; i < emoji_list.length; i++) {
+                int emoji_keycode = 100 + i;
+                emoji_keycode = -emoji_keycode; // just add the negative sign for negative keycode
+
+                if (key.codes[0] == emoji_keycode) {
+                    key.label = emoji_list[i];
+                    break;
+                }
+            }
+        }
+    }
+    private static Map<Integer, String> getMathCodes() {
+        Map<Integer, String> math_codes = new HashMap<>();
+
+        for (int i = 0; i < math_symbol_list.length; i++) {
+            int math_keycode = 1000 + i;
+            math_keycode = -math_keycode; // just add the negative sign for negative keycode
+
+            math_codes.put(math_keycode, math_symbol_list[i]);
+        }
+
+        return math_codes;
+    }
+
+    private void updateMathLabel() {
+        for (Keyboard.Key key : mathKeyboard.getKeys()) {
+
+            for (int i = 0; i < math_symbol_list.length; i++) {
+                int math_keycode = 1000 + i;
+                math_keycode = -math_keycode; // just add the negative sign for negative keycode
+
+                if (key.codes[0] == math_keycode) {
+                    key.label = math_symbol_list[i];
+                    break;
+                }
+            }
+        }
+    }
+
+    private void updateEnglishLabels() {
+        if (kv == null || kv.getKeyboard() != engKeyboard) return;
+
+        for (Keyboard.Key key : kv.getKeyboard().getKeys()) {
+            if (key.codes == null || key.codes.length == 0) continue;
+
+            int code = key.codes[0];
+            if (code > 0) {
+                char c = (char) code;
+
+                if (c >= 'a' && c <= 'z') {
+                    key.label = String.valueOf(caps_state > 0 ? Character.toUpperCase(c) : c);
+                } else if (c >= 'A' && c <= 'Z') {
+                    key.label = String.valueOf(caps_state > 0 ? c : Character.toLowerCase(c));
+                } else if (c >= '0' && c <= '9') {
+                    // Reset superscript/mathbb visual back to normal digit
+                    key.label = String.valueOf(c);
+                }
+            }
+        }
+    }
+
+    private void updateClipboardLabel() {
+        SharedPreferences prefs = getSharedPreferences("keyboard_settings", MODE_PRIVATE);
+
+        float paddingPx = 5f * getResources().getDisplayMetrics().density;
+        float textSizeSp = 16f;
+
+        for (Keyboard.Key key : clipKeyboard.getKeys()) {
+            if (key.codes == null || key.codes.length == 0) continue;
+
+            for (int i = 0; i < 10; i++) {
+                int clipboard_keycode = -(90 + i);
+                int clipboard_pref_code = i + 1;
+
+                String clipboard_prefs = "clipboard_text_" + clipboard_pref_code;
+                String clipboard_text = prefs.getString(clipboard_prefs, "");
+
+                if (key.codes[0] == clipboard_keycode) {
+                    if (clipboard_text == null || clipboard_text.isEmpty()) {
+                        key.label = null;
+                    } else {
+                        key.label = ellipsizeToFit(clipboard_text, key.width, paddingPx, textSizeSp);
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    private String ellipsizeToFit(String text, float maxWidthPx, float paddingPx, float textSizeSp) {
+        if (text == null || text.isEmpty()) return "";
+
+        float availableWidth = maxWidthPx - 2 * paddingPx;
+        if (availableWidth <= 0) return "...";
+
+        TextPaint paint = new TextPaint();
+        paint.setTextSize(TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_SP,
+                textSizeSp,
+                getResources().getDisplayMetrics()
+        ));
+
+        if (paint.measureText(text) <= availableWidth) {
+            return text;
+        }
+
+        String ellipsis = "...";
+        float ellipsisWidth = paint.measureText(ellipsis);
+
+        StringBuilder sb = new StringBuilder();
+        int i = 0;
+
+        while (i < text.length()) {
+            int cp = text.codePointAt(i);
+            String ch = new String(Character.toChars(cp));
+
+            float nextWidth = paint.measureText(sb.toString() + ch);
+            if (nextWidth + ellipsisWidth > availableWidth) {
+                break;
+            }
+
+            sb.append(ch);
+            i += Character.charCount(cp);
+        }
+
+        return sb.length() == 0 ? ellipsis : sb + ellipsis;
+    }
+
+    private boolean shouldAutoCap() {
+        InputConnection ic = getCurrentInputConnection();
+        if (ic == null) return false;
+
+        // If there is no character before the cursor, we're at the very start, auto-cap
+        CharSequence oneBefore = ic.getTextBeforeCursor(1, 0);
+        if (oneBefore == null || oneBefore.length() == 0) {
+            return true;
+        }
+
+        // If the character immediately before is a newline, auto-cap
+        if (oneBefore.charAt(oneBefore.length() - 1) == '\n') {
+            return true;
+        }
+
+        CharSequence beforeText = ic.getTextBeforeCursor(4, 0); // Check last 4 chars
+        if (beforeText == null) return true;
+
+        if (beforeText.length() < 2) return false;
+
+        String lastText = beforeText.toString();
+
+        if (lastText.endsWith("... ")) return false;
+
+        return CAPITALIZE_ENDS.contains(lastText.substring(lastText.length() - 2));
+    }
+
+    private boolean isAtLineStart() {
+        InputConnection ic = getCurrentInputConnection();
+        if (ic == null) return false;
+
+        CharSequence beforeText = ic.getTextBeforeCursor(1, 0);
+        // Beginning of text or right after a newline
+        return (beforeText == null || beforeText.length() == 0 || beforeText.charAt(0) == '\n');
+    }
+
+    private void adjustCapsAfterDeletion() {
+        if (caps_state == 2) {
+            return;
+        }
+
+        if (mainKeyboardMode == MainKeyboardMode.ENGLISH && !disableAutoCaps && !forceEmptySuggestions && defaultCaps && isAtLineStart()) {
+            caps_state = 1;
+        } else if (mainKeyboardMode == MainKeyboardMode.ENGLISH && !disableAutoCaps && !forceEmptySuggestions && shouldAutoCap() && defaultCaps) {
+            caps_state = 1;
+        } else {
+            caps_state = 0;
+        }
+        applyCapsState();
+    }
+
+    @Override
+    public void onFinishInput() {
+        super.onFinishInput();
+        coyoteHandler.removeCallbacks(flushRunnable);
+        synchronized (pendingKeys) { pendingKeys.clear(); }
+        resetCaps(); // Reset caps or perform actions
+    }
+
+    @Override
+    public void onUpdateSelection(int oldSelStart, int oldSelEnd, int newSelStart, int newSelEnd,
+                                  int candidatesStart, int candidatesEnd) {
+        super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd);
+
+        InputConnection ic = getCurrentInputConnection();
+        if (ic == null) return;
+
+//        ExtractedText et = ic.getExtractedText(new ExtractedTextRequest(), 0);
+//        if (et == null || et.text == null) return;
+//
+//        CharSequence text = et.text;
+
+        int newCapsState;
+
+        if (caps_state == 2) {
+            newCapsState = 2;
+        } else if (mainKeyboardMode == MainKeyboardMode.ENGLISH && !disableAutoCaps && !forceEmptySuggestions && defaultCaps && shouldAutoCap()) {
+            newCapsState = 1;
+        } else {
+            newCapsState = 0;
+        }
+
+        if (newCapsState != caps_state) {
+            caps_state = newCapsState;
+            applyCapsState();
+        }
+    }
+
+    private void resetCaps() {
+        if (caps_state == 2) return;  // Never reset caps lock
+
+        if (mainKeyboardMode == MainKeyboardMode.ENGLISH && caps_state == 1 && !isAtLineStart()) {
+            caps_state = 0;
+        } else if (mainKeyboardMode == MainKeyboardMode.ENGLISH && !disableAutoCaps && !forceEmptySuggestions && defaultCaps && isAtLineStart()) {
+            caps_state = 1;
+        }
+        applyCapsState();
+    }
+
+    private void handleCapsPress() {
+        if (mainKeyboardMode == MainKeyboardMode.CHINESE && chineseInputType == ChineseInputType.PINYIN) {
+            return;
+        }
+
+        long curr_time = System.currentTimeMillis();
+        if (curr_time - last_caps_time < DOUBLE_TAP_TIMEOUT) {
+            // Double tap detected -> toggle caps lock
+            caps_state = (caps_state == 2) ? 0 : 2;
+        } else {
+            // Single tap: toggle between off and single shift
+            if (caps_state == 0) {
+                caps_state = 1; // single shift
+            } else if (caps_state == 1) {
+                caps_state = 0; // back to off
+            } else if (caps_state == 2) {
+                caps_state = 0; // exit caps lock
+            }
+        }
+        last_caps_time = curr_time;
+        applyCapsState();
+    }
+
+    private void updateCapsLabel() {
+        Keyboard kb = (kv != null) ? kv.getKeyboard() : null;
+        if (kb == null) return;
+
+        for (Keyboard.Key key : kb.getKeys()) {
+            if (key.codes == null || key.codes.length == 0) continue;
+            if (key.codes[0] == -1) { // CAPS key
+                if (caps_state == 0) {
+                    key.label = "caps";
+                } else if (caps_state == 1) {
+                    key.label = "Caps";
+                } else {
+                    key.label = "CAPS";
+                }
+                break;
+            }
+        }
+    }
+
+    private void applyCapsState() {
+        Keyboard k = (kv != null) ? kv.getKeyboard() : null;
+        if (k == null) {
+            return;
+        }
+
+        if (k == mathKeyboard || k == chiKeyboard) {
+            caps_state = 0;
+            k.setShifted(false);
+            updateCapsLabel();
+            kv.invalidateAllKeys();
+            return;
+        }
+
+        kv.getKeyboard().setShifted(caps_state > 0);
+        updateCapsLabel();
+
+        // Reapply english keyboard case
+        if (k == engKeyboard) {
+            if (supersubMode) {
+                updateSupersubLabels();
+            } else {
+                updateEnglishLabels();
+            }
+
+            updateLongPressHints();
+        }
+
+        kv.invalidateAllKeys();
+    }
+
+
+    private int updateTheme() {
+        // get saved theme
+        SharedPreferences prefs = getSharedPreferences("keyboard_settings", MODE_PRIVATE);
+        String keyColor = prefs.getString("key_color", "Unselected");
+
+        // unselected theme defaults to shun
+        if (keyColor.equals("Unselected")) {
+            keyColor = "Shun";
+        }
+
+        // return theme id
+        return getResources().getIdentifier("Theme.HLLPPKeyboard." + keyColor, "style", getPackageName());
+    }
+
+    private void editEmojiArray() {
+        SharedPreferences prefs = getSharedPreferences("keyboard_settings", MODE_PRIVATE);
+        String emoji_variation = prefs.getString("emoji_variation", "neutral").toLowerCase();
+
+        for (int i=0; i < emoji_list.length; i++) {
+            String emoji = emoji_list[i];
+
+            if (emoji_variations.containsKey(emoji)) {
+
+                if (emoji_variation.equals("masculine")) {
+                    emoji_list[i] = emoji_variations.get(emoji)[0];
+                } else if (emoji_variation.equals("feminine")) {
+                    emoji_list[i] = emoji_variations.get(emoji)[1];
+                } else {
+                    emoji_list[i] = emoji_variations.get(emoji)[2];
+                }
+
+            }
+        }
+    }
+
+
+    @Override
+    public void onStartInputView(EditorInfo info, boolean restarting) {
+        super.onStartInputView(info, restarting);
+
+        coyoteHandler.removeCallbacks(flushRunnable);
+        synchronized (pendingKeys) {
+            pendingKeys.clear();
+        }
+
+        if (longPressRunnable != null) {
+            longPressHandler.removeCallbacks(longPressRunnable);
+        }
+        isLongPress = false;
+
+        SharedPreferences prefs = getSharedPreferences("keyboard_settings", MODE_PRIVATE);
+        defaultCaps = prefs.getBoolean("capsToggle", true);
+        defaultAutocor = prefs.getBoolean("autocorToggle", true);
+
+        isSkippedAutoreplace = false;
+        zhuyinExpanded = false;
+        supersubMode = false;
+        forceEmptySuggestions = false;
+        isSelectToggled = false;
+
+        if (root != null) {
+            View expanded = root.findViewById(R.id.expanded_candidates);
+            View keyboardView = root.findViewById(R.id.keyboard_view);
+
+            if (expanded != null) expanded.setVisibility(View.GONE);
+            if (keyboardView != null) keyboardView.setVisibility(View.VISIBLE);
+        }
+
+        // Reset Zhuyin buffer + bar text
+        zhuyinBuffer.setLength(0);
+        if (zhuyinCompositionText != null) {
+            zhuyinCompositionText.setText("");
+        }
+
+
+        Keyboard startKeyboard;
+
+        int inputClass = info.inputType & InputType.TYPE_MASK_CLASS;
+        int variation = info.inputType & InputType.TYPE_MASK_VARIATION;
+
+        boolean isTextPassword = inputClass == InputType.TYPE_CLASS_TEXT && (variation == InputType.TYPE_TEXT_VARIATION_PASSWORD || variation == InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD || variation == InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD);
+        disableAutoCaps = inputClass == InputType.TYPE_CLASS_TEXT && (variation == InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS || variation == InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS || variation == InputType.TYPE_TEXT_VARIATION_URI || variation == InputType.TYPE_TEXT_VARIATION_WEB_EDIT_TEXT);
+
+        if (isTextPassword || disableAutoCaps) {
+            caps_state = 0;
+        }
+
+        if (isTextPassword) { // pw
+            forceEmptySuggestions = true;
+
+            if (root != null) {
+                TextView s1 = root.findViewById(R.id.suggestion_1);
+                TextView s2 = root.findViewById(R.id.suggestion_2);
+                TextView s3 = root.findViewById(R.id.suggestion_3);
+                View scrollView = root.findViewById(R.id.suggestion_scroll);
+
+                if (s1 != null) s1.setText("");
+                if (s2 != null) s2.setText("");
+                if (s3 != null) s3.setText("");
+                if (scrollView != null) scrollView.setVisibility(View.GONE);
+            }
+
+            if (kv != null && engKeyboard != null) {
+                currentKeyboard = engKeyboard;
+                kv.setKeyboard(engKeyboard);
+
+                updateCompositionBarVisibility();
+                updateModeSwitchLabel();
+                applyCapsState();
+                kv.invalidateAllKeys();
+            }
+
+        } else {
+            if (inputClass == InputType.TYPE_CLASS_NUMBER) { // numpad
+                startKeyboard = numpadKeyboard;
+            } else {
+                startKeyboard = getMainKeyboardForMode();
+
+                if (startKeyboard == null) {
+                    startKeyboard = keyboard;
+                }
+            }
+
+            if (startKeyboard != null && kv != null) {
+                switchKeyboard(startKeyboard);
+            }
+        }
+
+        showSuggestions("");
+        caps_state = (mainKeyboardMode == MainKeyboardMode.ENGLISH && defaultCaps && !disableAutoCaps && !forceEmptySuggestions && shouldAutoCap()) ? 1 : 0;
+        applyCapsState();
+    }
+
+    public void setEdgetoEdge(View root) {
+        // Ensure the keyboard can layout edge-to-edge and stay above navigation bar
+        ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
+            androidx.core.graphics.Insets nav = insets.getInsets(WindowInsetsCompat.Type.navigationBars());
+            v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), nav.bottom);
+            return insets;
+        });
+        ViewCompat.requestApplyInsets(root);
+    }
+
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences prefs, String key) {
+        if (key.startsWith("clipboard")) {
+            // just refresh labels, no rebuild needed
+            if (clipKeyboard != null) updateClipboardLabel();
+            if (kv != null) kv.invalidateAllKeys();
+            return;
+        }
+
+        Set<String> rebuild_prefs = new HashSet<>(Arrays.asList("key_color", "gridToggle", "keyboard_height", "eng_keyboard_layout", "chi_keyboard_layout", "emoji_variation", "chiKeyboardDefaultToggle", "keySoundToggle", "key_sound_effect", "symbol_hint_layout", "fullStopCommentToggle"));
+        if (!rebuild_prefs.contains(key) && !key.startsWith("clipboard")) {
+            return;
+        }
+
+        if ("emoji_variation".equals(key)) {
+            editEmojiArray();
+        }
+
+        View newRoot = buildKeyboardView();
+        setInputView(newRoot);
+        root = newRoot;
+        setEdgetoEdge(root);
+
+        switchKeyboard(getMainKeyboardForMode());
+        showSuggestions("");
+    }
+
+    private GradientDrawable makeButtonBackground(int color) {
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(color);
+
+        float radius = 10 * getResources().getDisplayMetrics().density;
+
+        bg.setCornerRadius(radius);
+
+        return bg;
+    }
+
+    private void showClearClipboardConfirm() {
+        if (root == null) {
+            return;
+        }
+
+        Context ctx = root.getContext();
+
+        LinearLayout box = new LinearLayout(ctx);
+        box.setOrientation(LinearLayout.VERTICAL);
+
+        int pad = Math.round(20 * getResources().getDisplayMetrics().density);
+        box.setPadding(pad, pad, pad, pad);
+
+        box.setBackgroundColor(getThemeColor(ctx, R.attr.keyPopupBackgroundColor));
+
+        boolean chinese = (lastNonPageKeyboard == chiKeyboard);
+
+        TextView message = new TextView(ctx);
+        message.setText(chinese ? "要清除所有剪貼簿記錄嗎？" : "Clear all clipboard history?");
+        message.setTextSize(18f);
+        message.setTextColor(getThemeColor(ctx, R.attr.keyPopupTextColor));
+        message.setGravity(Gravity.CENTER);
+
+        LinearLayout.LayoutParams messageLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        messageLp.bottomMargin = Math.round(20 * getResources().getDisplayMetrics().density);
+        message.setLayoutParams(messageLp);
+
+        LinearLayout buttons = new LinearLayout(ctx);
+        buttons.setOrientation(LinearLayout.HORIZONTAL);
+        buttons.setGravity(Gravity.CENTER);
+
+        TextView cancel = new TextView(ctx);
+        cancel.setText(chinese ? "取消" : "Cancel");
+        cancel.setTextSize(17f);
+        cancel.setPadding(pad, pad, pad, pad);
+
+        TextView clear = new TextView(ctx);
+        clear.setText(chinese ? "清除" : "Clear");
+        clear.setTextSize(17f);
+        clear.setPadding(pad, pad, pad, pad);
+
+        int buttonPadH = Math.round(18 * getResources().getDisplayMetrics().density);
+        int buttonPadV = Math.round(7 * getResources().getDisplayMetrics().density);
+        int buttonGap = Math.round(30 * getResources().getDisplayMetrics().density);
+
+        cancel.setPadding(buttonPadH, buttonPadV, buttonPadH, buttonPadV);
+        clear.setPadding(buttonPadH, buttonPadV, buttonPadH, buttonPadV);
+
+        cancel.setBackground(makeButtonBackground(0xFF555555));
+        clear.setBackground(makeButtonBackground(0xFFB3261E));
+
+        cancel.setTextColor(0xFFFFFFFF);
+        clear.setTextColor(0xFFFFFFFF);
+
+        cancel.setBackgroundColor(0xFF555555);
+        clear.setBackgroundColor(0xFFB3261E);
+
+        buttons.addView(cancel);
+
+        Space gap = new Space(ctx);
+        gap.setLayoutParams(new LinearLayout.LayoutParams(buttonGap, 1));
+        buttons.addView(gap);
+
+        buttons.addView(clear);
+
+        box.addView(message);
+        box.addView(buttons);
+
+        PopupWindow popup = new PopupWindow(box, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, false);
+
+        popup.setTouchable(true);
+        popup.setOutsideTouchable(true);
+        popup.setFocusable(false);
+        popup.setInputMethodMode(PopupWindow.INPUT_METHOD_NOT_NEEDED);
+
+        cancel.setOnClickListener(v -> popup.dismiss());
+
+        clear.setOnClickListener(v -> {
+            popup.dismiss();
+            clearClipboard();
+        });
+
+        popup.showAtLocation(root, Gravity.CENTER, 0, 0);
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private View buildKeyboardView() {
+        SharedPreferences prefs = getSharedPreferences("keyboard_settings", MODE_PRIVATE);
+        prefs.registerOnSharedPreferenceChangeListener(this);
+
+        // 1) Figure out the theme, but don't gate inflation on it
+        int themeId = updateTheme();
+
+        ContextThemeWrapper wrap;
+
+        if (themeId != 0) {
+            wrap = new ContextThemeWrapper(this, themeId);
+        } else {
+            return root;
+        }
+
+        // 2) Always inflate under that context
+        LayoutInflater li = LayoutInflater.from(wrap);
+        View root = li.cloneInContext(wrap)
+                .inflate(R.layout.custom_keyboard_layout, null);
+
+        setEdgetoEdge(root);
+
+        // 3) (Exactly as before) wire up your KeyboardView + pop‑up machinery
+        kv = root.findViewById(R.id.keyboard_view);
+        View clipboard = root.findViewById(R.id.btn_clipboard);
+        View textEditor = root.findViewById(R.id.btn_editor);
+
+        emojiKeyboard = new Keyboard(wrap, R.xml.emojis);
+        symbolKeyboard= new Keyboard(wrap, R.xml.symbols);
+        mathKeyboard  = new Keyboard(wrap, R.xml.math_symbols);
+        clipKeyboard  = new Keyboard(wrap, R.xml.clipboard);
+        numpadKeyboard= new Keyboard(wrap, R.xml.numpad);
+        zhuyinKeyboard= new Keyboard(wrap, R.xml.custom_keypad_zhuyin);
+        pinyinKeyboard= new Keyboard(wrap, R.xml.custom_keypad_pinyin);
+
+        zhuyinCompositionBar = root.findViewById(R.id.zhuyin_composition_bar);
+        zhuyinCompositionText = root.findViewById(R.id.zhuyin_composition_text);
+
+        String keyboardHeight = prefs.getString("keyboard_height", "Short");
+        String engKeyboardLayout = prefs.getString("eng_keyboard_layout", "qwerty").toLowerCase();
+        String chiKeyboardLayout = prefs.getString("chi_keyboard_layout", "zhuyin").toLowerCase();
+        String symbolHintLayout = prefs.getString("symbol_hint_layout", "default").toLowerCase();
+        boolean useChineseDefault = prefs.getBoolean("chiKeyboardDefaultToggle", false);
+        useFullStopComment = prefs.getBoolean("fullStopCommentToggle", false);
+        isKeySoundEnabled = prefs.getBoolean("keySoundToggle", true);
+
+        updateSymbolLabels();
+        updateEditorLabels();
+        updateNumpadLabels();
+
+        if (chiKeyboardLayout.equals("zhuyineten")) {
+            useEten = true;
+            zhuyinKeyboard = new Keyboard(wrap, R.xml.custom_keypad_zhuyin_eten);
+            chineseInputType = ChineseInputType.ZHUYIN;
+            chiKeyboard = zhuyinKeyboard;
+        }
+        else if (chiKeyboardLayout.equals("pinyin")) {
+            useEten = false;
+            chineseInputType = ChineseInputType.PINYIN;
+            chiKeyboard = pinyinKeyboard;
+        }
+        else {
+            useEten = false;
+            zhuyinKeyboard = new Keyboard(wrap, R.xml.custom_keypad_zhuyin);
+            chineseInputType = ChineseInputType.ZHUYIN;
+            chiKeyboard = zhuyinKeyboard;
+        }
+
+        longPressSymbols = longPressSymbolsMain;
+        if (symbolHintLayout.equals("alternative")) {
+            longPressSymbols = longPressSymbolsAlt;
+        }
+        else if (symbolHintLayout.equals("math")) {
+            longPressSymbols = longPressSymbolsMath;
+        }
+
+        if (engKeyboardLayout.equals("qwerty")) {
+            switch (keyboardHeight) {
+                case "Short":
+                    keyboard = new Keyboard(wrap, R.xml.custom_keypad_short);
+                    break;
+                case "Medium":
+                    keyboard = new Keyboard(wrap, R.xml.custom_keypad_medium);
+                    break;
+                case "Tall":
+                    keyboard = new Keyboard(wrap, R.xml.custom_keypad_tall);
+                    break;
+                default:
+                    keyboard = new Keyboard(wrap, R.xml.custom_keypad_qwerty);
+                    break;
+            }
+
+            engKeyboard = keyboard;
+            updateLongPressHints();
+        }
+
+        else if (useChineseDefault) {
+            keyboard = zhuyinKeyboard;
+            engKeyboard = new Keyboard(wrap, R.xml.custom_keypad_qwerty);
+        }
+
+        else {
+            String layoutName = "custom_keypad_" + engKeyboardLayout;
+            int layoutXml = getResources().getIdentifier(layoutName, "xml", getPackageName());
+            keyboard = new Keyboard(wrap, layoutXml);
+            engKeyboard = keyboard;
+        }
+
+        if (currentKeyboard == null && lastNonPageKeyboard == null) {
+            mainKeyboardMode = useChineseDefault ? MainKeyboardMode.CHINESE : MainKeyboardMode.ENGLISH;
+        }
+
+        // Update layout
+        String absPath = getFilesDir().getAbsolutePath() + "/test_files/20k_texting.txt";
+        ensureNative();
+
+        nativeSetLayout(engKeyboardLayout, absPath);
+
+        if (!prefs.getBoolean("gridToggle", false)) {
+            editorKeyboard = new Keyboard(wrap, R.xml.editor_maximize);
+        }
+        else {
+            editorKeyboard = new Keyboard(wrap, R.xml.editor_grid);
+        }
+
+        RecyclerView expanded = root.findViewById(R.id.expanded_candidates);
+        View keyboardView = root.findViewById(R.id.keyboard_view);
+
+        // toggle clipboard and normal keyboard
+//        clipboard.setOnClickListener(v -> {
+//            if (kv.getKeyboard() == clipKeyboard) {
+//                returnToLastNonPageKeyboard();
+//            } else if (!zhuyinExpanded) {
+//                switchKeyboard(clipKeyboard);
+//            } else {
+//                expanded.setVisibility(View.GONE);
+//                keyboardView.setVisibility(View.VISIBLE);
+//                zhuyinExpanded = false;
+//            }
+//        });
+
+        clipboard.setOnClickListener(v -> {
+            try {
+                if (lastNonPageKeyboard == chiKeyboard) {
+                    regenerateZhuyinSuggestions(zhuyinBuffer.toString());
+
+                    if (!zhuyinSuggestions.isEmpty() || zhuyinExpanded) {
+                        if (zhuyinExpanded) {
+                            expanded.setVisibility(View.GONE);
+                            keyboardView.setVisibility(View.VISIBLE);
+                            zhuyinExpanded = false;
+                        } else {
+                            expanded.setVisibility(View.VISIBLE);
+                            keyboardView.setVisibility(View.GONE);
+
+                            expanded.getLayoutParams().height = keyboardView.getHeight();
+                            expanded.requestLayout();
+                            zhuyinExpanded = true;
+
+                            FlexboxLayoutManager lm = new FlexboxLayoutManager(this);
+                            lm.setFlexDirection(FlexDirection.ROW);
+                            lm.setFlexWrap(FlexWrap.WRAP);
+                            expanded.setLayoutManager(lm);
+
+                            regenerateZhuyinSuggestions(zhuyinBuffer.toString());
+
+                            expanded.setAdapter(new RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+                                @Override
+                                public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+                                    View v2 = LayoutInflater.from(parent.getContext())
+                                            .inflate(R.layout.item_candidate_chip, parent, false);
+                                    return new RecyclerView.ViewHolder(v2) {};
+                                }
+
+                                @Override
+                                public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
+                                    TextView tv = holder.itemView.findViewById(R.id.txt);
+                                    String s = zhuyinSuggestions.get(position);
+                                    int dc = zhuyinSuggestionDeleteCounts.get(position);
+                                    tv.setText(s);
+
+                                    tv.setOnClickListener(v3 -> {
+                                        InputConnection ic = getCurrentInputConnection();
+                                        if (ic != null) {
+                                            replaceCurrentWord(s, dc);
+                                        }
+
+                                        expanded.setVisibility(View.GONE);
+                                        keyboardView.setVisibility(View.VISIBLE);
+                                        zhuyinExpanded = false;
+
+                                        if (zhuyinBuffer.length() > 0) {
+                                            regenerateZhuyinSuggestions(zhuyinBuffer.toString());
+                                        }
+                                    });
+                                }
+
+                                @Override
+                                public int getItemCount() {
+                                    return zhuyinSuggestions.size();
+                                }
+                            });
+                        }
+                        return;
+                    }
+                }
+
+                if (kv.getKeyboard() == clipKeyboard) {
+                    returnToLastNonPageKeyboard();
+                } else if (!zhuyinExpanded) {
+                    switchKeyboard(clipKeyboard);
+                } else {
+                    expanded.setVisibility(View.GONE);
+                    keyboardView.setVisibility(View.VISIBLE);
+                    zhuyinExpanded = false;
+                }
+            } catch (Exception e) {
+            }
+        });
+
+        // long click to clear clipboard
+        clipboard.setOnLongClickListener(v -> {
+            if (kv.getKeyboard() == clipKeyboard && !zhuyinExpanded) {
+                showClearClipboardConfirm();
+                return true;
+            } else if (kv.getKeyboard() == chiKeyboard && chineseInputType == ChineseInputType.ZHUYIN) {
+                zhuyinLongPressQwerty = !zhuyinLongPressQwerty;
+                SharedPreferences zhuyinPrefs = getSharedPreferences("keyboard_settings", MODE_PRIVATE);
+                zhuyinPrefs.edit().putBoolean("zhuyinLongPressQwerty", zhuyinLongPressQwerty).apply();
+                updateZhuyinLongPressHints();
+                return true;
+            } else if (kv.getKeyboard() == engKeyboard) {
+                supersubMode = !supersubMode;
+                caps_state = 0;
+                updateSupersubLabels();
+                applyCapsState();
+                kv.invalidateAllKeys();
+                return true;
+            } else {
+                return true;
+            }
+        });
+
+        holdRunnable = new Runnable() {
+            @Override
+            public void run() {
+                setSymbolLongPressHints(isHeld);
+            }
+        };
+
+        clipboard.setOnTouchListener((v, event) -> {
+            if (currentKeyboard == symbolKeyboard || currentKeyboard == mathKeyboard || currentKeyboard == emojiKeyboard) {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        isHeld = true;
+                        holdHandler.removeCallbacks(holdRunnable);
+                        holdHandler.postDelayed(holdRunnable, HOLD_MS);
+                        return true;
+
+                    case MotionEvent.ACTION_UP:
+                    case MotionEvent.ACTION_CANCEL:
+                        isHeld = false;
+                        holdHandler.removeCallbacks(holdRunnable);
+                        holdHandler.post(holdRunnable);
+                        return true;
+                }
+            }
+            return false;
+        });
+
+        // toggle text editor and normal keyboard
+        textEditor.setOnClickListener(v -> {
+            if (kv.getKeyboard() == editorKeyboard) {
+                returnToLastNonPageKeyboard();
+            }
+            else if (kv.getKeyboard() != numpadKeyboard && !zhuyinExpanded) { // prevent long press for numpad on release go back to editor
+                switchKeyboard(editorKeyboard);
+            }
+        });
+
+        textEditor.setOnLongClickListener(v -> {
+            if (lastNonPageKeyboard == chiKeyboard) {
+                switchKeyboard(engKeyboard);
+            } else {
+                caps_state = 0;
+                switchKeyboard(chiKeyboard);
+            }
+
+            if (!forceEmptySuggestions && defaultCaps && shouldAutoCap()) {
+                caps_state = 1;
+            } else {
+                caps_state = 0;
+            }
+            applyCapsState();
+            return true;
+        });
+
+//        kv.setKeyboard(keyboard);
+//        updateCompositionBarVisibility();
+//        updateModeSwitchLabel();
+//        switchKeyboard(keyboard);
+        Keyboard initial = getMainKeyboardForMode();
+
+        kv.setKeyboard(initial);
+        currentKeyboard = initial;
+        lastNonPageKeyboard = initial;
+
+//        kv.setOnKeyboardActionListener(this);
+//        kv.setPreviewEnabled(false);
+//        kv.setOnTouchListener((v, ev) -> {
+//            if (ev.getAction() == MotionEvent.ACTION_DOWN) {
+//                lastTouchX = (int) ev.getX();
+//                lastTouchY = (int) ev.getY();
+//            }
+//            if (ev.getAction() == MotionEvent.ACTION_UP) v.performClick();
+//            return false;
+//        });
+
+        updateCompositionBarVisibility();
+        updateModeSwitchLabel();
+        applyCapsState();
+
+        kv.setOnKeyboardActionListener(this);
+        kv.setPreviewEnabled(false);
+        kv.setOnTouchListener((v, ev) -> {
+            if (ev.getAction() == MotionEvent.ACTION_DOWN) {
+                lastTouchX = (int)ev.getX();
+                lastTouchY = (int)ev.getY();
+            }
+            if (ev.getAction() == MotionEvent.ACTION_UP) v.performClick();
+            return false;
+        });
+
+        // 4) Compute scale *after* layout
+        scaleX = scaleY = 1f;
+        kv.post(() -> {
+            scaleX = (float)kv.getWidth()  / kv.getKeyboard().getMinWidth();
+            scaleY = (float)kv.getHeight() / kv.getKeyboard().getHeight();
+        });
+
+        // 5) Recreate manual popup
+        previewText = new TextView(this);
+        previewText.setBackgroundColor(getThemeColor(wrap, R.attr.keyPopupBackgroundColor));
+        previewText.setTextColor(getThemeColor(wrap, R.attr.keyPopupTextColor));
+        previewText.setTextSize(26f);
+        previewText.setGravity(Gravity.CENTER);
+        previewText.setIncludeFontPadding(false);
+
+        int textNudge = Math.round(2f * getResources().getDisplayMetrics().density);
+        previewText.setPadding(0, 0, 0, textNudge);
+
+        keyPreviewPopup = new PopupWindow(previewText,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        keyPreviewPopup.setAnimationStyle(0);
+        keyPreviewPopup.setTouchable(false);
+        keyPreviewPopup.setFocusable(false);
+
+        init_emoji_symbols();
+        updateCapsLabel();
+        updateEmojiLabel();
+        updateMathLabel();
+        updateClipboardLabel();
+        ensureNative();
+        initSoundPool();
+        suggestionBar = root.findViewById(R.id.suggestion_bar_container);
+
+        return root;
+    }
+
+    private void moveClipboardContent(int i) {
+        SharedPreferences prefs = getSharedPreferences("keyboard_settings", MODE_PRIVATE);
+        for (int j = i - 1; j > 0; j--) {
+            String prev_pref = "clipboard_text_" + j;
+            String curr_pref = "clipboard_text_" + (j + 1);
+            String prev_text = prefs.getString(prev_pref, "");
+            prefs.edit().putString(curr_pref, prev_text).apply();
+        }
+    }
+
+    private void updateSupersubLabels() {
+        if (kv == null || kv.getKeyboard() != engKeyboard) return;
+
+        for (Keyboard.Key key : kv.getKeyboard().getKeys()) {
+            if (key.codes == null || key.codes.length == 0) continue;
+
+            int code = key.codes[0];
+            char ch = (char) code;
+
+            // Default reset
+            if (!supersubMode) {
+                // Normal English keyboard (respect Caps normally)
+                if (Character.isLetter(ch)) {
+                    int idx = Character.toLowerCase(ch) - 'a';
+                    if (idx >= 0 && idx < 26) {
+                        key.label = (caps_state > 0) ? Character.toString(idx + 'A') : Character.toString(idx + 'a');
+                    }
+                } else if (Character.isDigit(ch)) {
+                    key.label = String.valueOf(ch);
+                }
+                continue;
+            }
+
+            // supersubMode is ON
+            if (Character.isLetter(ch)) {
+                int idx = Character.toLowerCase(ch) - 'a';
+                if (idx >= 0 && idx < 26) {
+                    if (caps_state == 0) {
+                        // supersub lowercase
+                        key.label = engSuperArray[idx];
+                    } else {
+                        // mathbb uppercase
+                        key.label = mathbbEngArray[idx];
+                    }
+                }
+            } else if (Character.isDigit(ch)) {
+                int d = ch - '0';
+                if (d >= 0 && d <= 9) {
+                    if (caps_state == 0) {
+                        key.label = digitSuperArray[d];
+                    } else {
+                        key.label = mathbbDigitArray[d];
+                    }
+                }
+            }
+        }
+
+        kv.invalidateAllKeys();
+    }
+
+
+
+    private void copyToClipboard(String text) {
+        List<String> entries = loadClipboard();
+
+        // insert new text at the top
+        entries.add(0, text);
+
+        // keep only 10
+        if (entries.size() > 10) {
+            entries = entries.subList(0, 10);
+        }
+
+        saveClipboard(entries);
+        if (clipKeyboard != null) {
+            updateClipboardLabel();
+        }
+        if (kv != null) {
+            kv.invalidateAllKeys();
+        }
+    }
+
+    private void clearClipboard() {
+        SharedPreferences.Editor editor = getSharedPreferences("keyboard_settings", MODE_PRIVATE).edit();
+        for (int i = 1; i < 11; i++) {
+            editor.putString("clipboard_text_" + i, "");
+        }
+        editor.apply();  // single apply, fires onSharedPreferenceChanged only once
+
+        // Manually refresh labels since we bypassed the listener's normal path
+        updateClipboardLabel();
+        kv.invalidateAllKeys();
+    }
+
+    // Load all clipboard entries into a list
+    private List<String> loadClipboard() {
+        SharedPreferences prefs = getSharedPreferences("keyboard_settings", MODE_PRIVATE);
+        List<String> entries = new ArrayList<>();
+        for (int i = 1; i <= 10; i++) {
+            String text = prefs.getString("clipboard_text_" + i, "");
+            if (!text.isEmpty()) {
+                entries.add(text);
+            }
+        }
+        return entries;
+    }
+
+    // Save a list of entries back to SharedPreferences
+    private void saveClipboard(List<String> entries) {
+        SharedPreferences.Editor editor = getSharedPreferences("keyboard_settings", MODE_PRIVATE).edit();
+        for (int i = 1; i <= 10; i++) {
+            String text = (i <= entries.size()) ? entries.get(i - 1) : "";
+            editor.putString("clipboard_text_" + i, text);
+        }
+        editor.apply();
+    }
+
+    @Override
+    public void onText(CharSequence charSequence) {
+    }
+
+    @Override
+    public void swipeLeft() {
+    }
+
+    @Override
+    public void swipeRight() {
+    }
+
+    @Override
+    public void swipeDown() {
+    }
+
+    @Override
+    public void swipeUp() {
+    }
+
+    @Override
+    public boolean onEvaluateInputViewShown() {
+        super.onEvaluateInputViewShown();
+        return true;
+    }
+}

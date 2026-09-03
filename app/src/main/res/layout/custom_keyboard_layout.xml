@@ -148,7 +148,7 @@
             android:visibility="gone"
             android:background="?attr/suggestionBarColor" />
 
-        <com.fqhll.keyboard.CustomKeyboardView
+        <com.hllpp.keyboard.CustomKeyboardView
             android:id="@+id/keyboard_view"
             android:layout_width="match_parent"
             android:layout_height="match_parent"

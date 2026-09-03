@@ -1,33 +1,33 @@
-# <img src="./images/FQ-HLL_App.png" width="30"/> FQ-HLL Keyboard 
+# <img src="./images/HLLPP_App.png" width="30"/> HLLPP Keyboard 
 
-<img src="./images/FQ-HLL_Banner_Cropped.png"/>
+<img src="./images/HLLPP_Banner_Cropped.png"/>
 
 ## Description
-The FQ-HLL (Frequency-Quantized HyperLogLog) keyboard is an Android keyboard, that uses the efficient and minimal memory usage [FQ-HLL Autocorrection](https://github.com/shun4midx/FQ-HyperLogLog-Autocorrect) algorithm, which [Shun](https://github.com/shun4midx) took part in creating to become a reality. Its main data structure was the cardinality estimator "HLL". More specifically, it uses certain properties of HLL's bit registers to simulate different frequencies without needing additional storage.
+The HLLPP (Frequency-Quantized HyperLogLog) keyboard is an Android keyboard, that uses the efficient and minimal memory usage [HLLPP Autocorrection](https://github.com/shun4midx/HyperLogLogPlusplus-Autocorrect) algorithm, which [Shun](https://github.com/shun4midx) took part in creating to become a reality. Its main data structure was the cardinality estimator "HLL". More specifically, it uses certain properties of HLL's bit registers to simulate different frequencies without needing additional storage.
 
-Of course, Shun's fascination over algorithms has inspired the FQ-HLL algorithm, since HLL is rarely used in this context. Yet, more importantly, he is also dyslexic, and has struggled for years never finding a fitting mobile keyboard for him. Autocorrection even by top companies rarely accounted for dyslexics, and oftentimes his typos would not be corrected, unless he manually corrects them himself. Surely, this frustration influenced his creation of the FQ-HLL Autocorrection algorithm --- it almost became a perfect depiction of how he reads as a dyslexic person. He found he did not require as much brainpower anymore to type with this keyboard due to the more dyslexia-friendly autocorrection suggestions, such as "klof" -> "folk".
+Of course, Shun's fascination over algorithms has inspired the HLLPP algorithm, since HLL is rarely used in this context. Yet, more importantly, he is also dyslexic, and has struggled for years never finding a fitting mobile keyboard for him. Autocorrection even by top companies rarely accounted for dyslexics, and oftentimes his typos would not be corrected, unless he manually corrects them himself. Surely, this frustration influenced his creation of the HLLPP Autocorrection algorithm --- it almost became a perfect depiction of how he reads as a dyslexic person. He found he did not require as much brainpower anymore to type with this keyboard due to the more dyslexia-friendly autocorrection suggestions, such as "klof" -> "folk".
 
-Thus, here we present the FQ-HLL keyboard which uses the fast and low memory FQ-HLL Autocorrection algorithm. It's made for everyone but especially dyslexic people in mind, with an autocorrection algorithm that hopefully eases common frustrations with autocorrection. FQ-HLL does not require knowledge of any particular language, requiring only a dictionary to achieve high accuracy, which makes it perfect for multilingual users. The ability to have custom dictionaries would also be implemented in the future.
+Thus, here we present the HLLPP keyboard which uses the fast and low memory HLLPP Autocorrection algorithm. It's made for everyone but especially dyslexic people in mind, with an autocorrection algorithm that hopefully eases common frustrations with autocorrection. HLLPP does not require knowledge of any particular language, requiring only a dictionary to achieve high accuracy, which makes it perfect for multilingual users. The ability to have custom dictionaries would also be implemented in the future.
 
 ## Installation
 
-Download the latest release of the app [here](https://github.com/shun4midx/FQ-HLL-Keyboard/releases/latest), install the apk and head to your phone's keyboard settings. Enable `FQ-HLL Keyboard` and switch to the keyboard.
+Download the latest release of the app [here](https://github.com/shun4midx/HLLPP-Keyboard/releases/latest), install the apk and head to your phone's keyboard settings. Enable `HLLPP Keyboard` and switch to the keyboard.
 
-The latest (development) release build of the app can be downloaded [here](https://github.com/shun4midx/FQ-HLL-Keyboard/blob/main/app/release/app-release.apk). This is the most up-to-date version and is recommended unless a version of the app is released recently.
+The latest (development) release build of the app can be downloaded [here](https://github.com/shun4midx/HLLPP-Keyboard/blob/main/app/release/app-release.apk). This is the most up-to-date version and is recommended unless a version of the app is released recently.
 
 You can also launch system keyboard settings and switch keyboards from the installed app.
 
-Keyboard settings can be found by launching the FQ-HLL Keyboard app installed with the apk, or by pressing the `⎋` button on the keyboard/holding down enter key in zhuyin keyboard.
+Keyboard settings can be found by launching the HLLPP Keyboard app installed with the apk, or by pressing the `⎋` button on the keyboard/holding down enter key in zhuyin keyboard.
 
 Keyboard settings are saved across updates of the app.
 
 ## Features
 
-- FQ-HLL autocorrect algorithm
+- HLLPP autocorrect algorithm
 - Clipboard, text editor, symbols, and emojis
 - Coyote-time-like handling of simutaneous key presses
 - Autocorrect/autocapitalization toggle
-- Lots of [themes](https://github.com/shun4midx/FQ-HLL-Keyboard/tree/main/themes#readme) and theme customisability (key colour, key text colour, key pressed colour, key border colour, keyboard background colour, suggestion bar (text) colour, key popup (text) colour)
+- Lots of [themes](https://github.com/shun4midx/HLLPP-Keyboard/tree/main/themes#readme) and theme customisability (key colour, key text colour, key pressed colour, key border colour, keyboard background colour, suggestion bar (text) colour, key popup (text) colour)
 - Height customisation (short, medium, tall)
 - Text editor mode customisation (maximize, grid)
 - Exporting/Importing English Dictionary from file
@@ -37,7 +37,7 @@ Keyboard settings are saved across updates of the app.
 
 #### Importing and Exporting English Dictionary
 
-The import/export functions can be accessed through the FQ-HLL Keyboard App installed with the apk.
+The import/export functions can be accessed through the HLLPP Keyboard App installed with the apk.
 
 #### Suggestion Bar
 
@@ -94,9 +94,9 @@ More symbols can be accessed by holding down a symbol on either page.
 <img width="400" alt="symbol_layout_math" src="./images/math_symbol.png" />
 
 #### Zhuyin
-We now support traditional Chinese typing via Zhuyin, with both the normal Zhuyin layout and an alternate Eten layout! It supports fuzzy Zhuyin typing (i.e. there is no need for 100% accuracy with typing), and selection based on common phrases instead of word-by-word. However, as of right now, you would need to type the Zhuyin  **with the tone of the word**. The first tone is parsed as a "whitespace". We referenced `tsi.json` from [`dylandy/tobopomo.js`](https://github.com/dylandy/tobopomo.js/tree/master/data/tsi.json), with the addition of the words 啲 (ㄉㄧ), 喺 (ㄒㄧˋ, ㄒㄧˊ), 佢 (ㄑㄩˊ), 㗎 (ㄐㄧㄚˋ), 嚟 (ㄌㄧˊ), 哋 (ㄉㄧˋ), 咗 (ㄗㄨㄛˇ), 俾 (ㄅㄟ), 嗰 (ㄍㄜˇ), 嘢 (ㄧㄝˇ), and many other words which are common in Cantonese speech. The addition of these words made us name it `tsi_custom.json`, which can be found [here](https://github.com/shun4midx/FQ-HLL-Keyboard/blob/main/app/src/main/data/tsi_custom.json). 
+We now support traditional Chinese typing via Zhuyin, with both the normal Zhuyin layout and an alternate Eten layout! It supports fuzzy Zhuyin typing (i.e. there is no need for 100% accuracy with typing), and selection based on common phrases instead of word-by-word. However, as of right now, you would need to type the Zhuyin  **with the tone of the word**. The first tone is parsed as a "whitespace". We referenced `tsi.json` from [`dylandy/tobopomo.js`](https://github.com/dylandy/tobopomo.js/tree/master/data/tsi.json), with the addition of the words 啲 (ㄉㄧ), 喺 (ㄒㄧˋ, ㄒㄧˊ), 佢 (ㄑㄩˊ), 㗎 (ㄐㄧㄚˋ), 嚟 (ㄌㄧˊ), 哋 (ㄉㄧˋ), 咗 (ㄗㄨㄛˇ), 俾 (ㄅㄟ), 嗰 (ㄍㄜˇ), 嘢 (ㄧㄝˇ), and many other words which are common in Cantonese speech. The addition of these words made us name it `tsi_custom.json`, which can be found [here](https://github.com/shun4midx/HLLPP-Keyboard/blob/main/app/src/main/data/tsi_custom.json). 
 
-We also rank fuzzy suggestions, displayed after all correct suggestions, with single-character Chinese suggestions using character frequency as one of the ranking signals, based on a [source](https://teric.naer.edu.tw/wSite/ct?ctNode=645&mp=teric_b&xItem=2068770&resCtNode=453) from the Taiwan Education Resources Information Center, detailing Chinese character frequency in Taiwan in 2023. It is downloaded from `附件下載1` on the linked page, and the raw file can be accessed [here](https://github.com/shun4midx/FQ-HLL-Keyboard/blob/main/app/src/main/data/附錄1、民國112年語料字頻表.xlsx). From the same website, we also download `附件下載2`, but the raw file is too large to push (roughly 1.0GB). It is a file detailing Chinese word (詞語) frequency, and we use it to rank Chinese words according to frequency.
+We also rank fuzzy suggestions, displayed after all correct suggestions, with single-character Chinese suggestions using character frequency as one of the ranking signals, based on a [source](https://teric.naer.edu.tw/wSite/ct?ctNode=645&mp=teric_b&xItem=2068770&resCtNode=453) from the Taiwan Education Resources Information Center, detailing Chinese character frequency in Taiwan in 2023. It is downloaded from `附件下載1` on the linked page, and the raw file can be accessed [here](https://github.com/shun4midx/HLLPP-Keyboard/blob/main/app/src/main/data/附錄1、民國112年語料字頻表.xlsx). From the same website, we also download `附件下載2`, but the raw file is too large to push (roughly 1.0GB). It is a file detailing Chinese word (詞語) frequency, and we use it to rank Chinese words according to frequency.
 
 ##### Zhuyin Keyboard
 
@@ -150,13 +150,13 @@ To enter a newline on the numpad, long press the enter key.
 
 ### Keyboard height
 
-You can build a custom apk using github actions with the keyboard height of your choice. The built apk will be exported as the workflow run artifact. Use the example workflow below or [fork this repository](https://github.com/shun4midx/FQ-HLL-Keyboard/fork) and run [trigger_custom_apk.yml](https://github.com/shun4midx/FQ-HLL-Keyboard/blob/main/.github/workflows/trigger_custom_apk.yml).
+You can build a custom apk using github actions with the keyboard height of your choice. The built apk will be exported as the workflow run artifact. Use the example workflow below or [fork this repository](https://github.com/shun4midx/HLLPP-Keyboard/fork) and run [trigger_custom_apk.yml](https://github.com/shun4midx/HLLPP-Keyboard/blob/main/.github/workflows/trigger_custom_apk.yml).
 
 Choose the "Custom" keyboard height in settings to use it. Note that the built apk is a debug apk and is not signed unlike the official releases.
 
-[example workflow](https://github.com/shun4midx/FQ-HLL-Keyboard/blob/main/.github/workflows/trigger_custom_apk.yml):
+[example workflow](https://github.com/shun4midx/HLLPP-Keyboard/blob/main/.github/workflows/trigger_custom_apk.yml):
 ```yml
-name: Build custom FQ-HLL Keyboard apk
+name: Build custom HLLPP Keyboard apk
 
 on:
   workflow_dispatch:
@@ -164,7 +164,7 @@ on:
 jobs:
   build:
 
-    uses: shun4midx/FQ-HLL-Keyboard/.github/workflows/build_custom_apk.yml@main
+    uses: shun4midx/HLLPP-Keyboard/.github/workflows/build_custom_apk.yml@main
     with:
       # in dp; default main keyboard heights are short: 45, medium: 50, tall: 60
       keyboard-height: 50
@@ -172,13 +172,13 @@ jobs:
 
 ### Themes
 
-You can view the themes in the [themes folder](https://github.com/shun4midx/FQ-HLL-Keyboard/tree/main/themes#readme).
+You can view the themes in the [themes folder](https://github.com/shun4midx/HLLPP-Keyboard/tree/main/themes#readme).
 
 Want a custom theme? Customisable themes may be implemented in the future, but until then you can open an issue to request one. Please include hex codes of key colour, key text colour, key pressed colour, key border colour, keyboard background colour, suggestion bar colour, and suggestion bar text colour. Alternatively, fork the repository, edit themes.xml, and either build your own apk or open a pull request.
 
 ## Development usage
 
-Install android studio and run the app. The usage after installation is the same as [installing from apk](https://github.com/shun4midx/FQ-HLL-Keyboard?tab=readme-ov-file#installation).
+Install android studio and run the app. The usage after installation is the same as [installing from apk](https://github.com/shun4midx/HLLPP-Keyboard?tab=readme-ov-file#installation).
 
 ### Keyboard files
 
@@ -189,10 +189,10 @@ app/src/main
 ├── AndroidManifest.xml
 ├── cpp
 │   ├── CMakeLists.txt
-│   ├── FQ-HyperLogLog-Autocorrect
+│   ├── HyperLogLogPlusplus-Autocorrect
 │   └── native-lib.cpp
 ├── ic_launcher-playstore.png
-├── java/com/fqhll/keyboard
+├── java/com/hllpp/keyboard
 │   ├── CustomKeyboardApp.java
 │   ├── CustomKeyboardView.java
 │   ├── MainActivity.kt
@@ -245,7 +245,7 @@ app/src/main
 
 They are not guaranteed to work, but you get the latest features. Feel free to open an issue if you found a bug that isn't listed in the todo below.
 
-https://github.com/shun4midx/FQ-HLL-Keyboard/blob/main/app/release/app-release.apk
+https://github.com/shun4midx/HLLPP-Keyboard/blob/main/app/release/app-release.apk
 
 Prereleases are relatively more tested development versions of the app if you prefer a more stable app.
 
@@ -296,7 +296,7 @@ You can contact Shun via [Email](mailto:shun4midx@gmail.com) or Discord at @shun
 
 ## License
 
-Most of FQ-HLL-Keyboard is licensed under the MIT License.
+Most of HLLPP-Keyboard is licensed under the MIT License.
 
 `app/src/main/data/tsi_custom.json` is derived from `tobopomo.js/data/tsi.json` from the [`dylandy/tobopomo.js`](https://github.com/dylandy/tobopomo.js) project and is distributed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 

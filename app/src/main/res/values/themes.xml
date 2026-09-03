@@ -1,31 +1,31 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
-    <style name="Theme.FQHLLKeyboard" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+    <style name="Theme.HLLPPKeyboard" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
         <!-- Primary brand color. -->
-        <item name="colorPrimary">@color/custom_fqhll_logo_blue</item>
-        <item name="colorPrimaryVariant">@color/custom_fqhll_banner_blue</item>
-        <item name="colorOnPrimary">@color/custom_fqhll_logo_purple</item>
+        <item name="colorPrimary">@color/custom_hllpp_logo_blue</item>
+        <item name="colorPrimaryVariant">@color/custom_hllpp_banner_blue</item>
+        <item name="colorOnPrimary">@color/custom_hllpp_logo_purple</item>
         <!-- Secondary brand color. -->
-        <item name="colorSecondary">@color/custom_fqhll_banner_pink</item>
-        <item name="colorSecondaryVariant">@color/custom_fqhll_banner_pink</item>
+        <item name="colorSecondary">@color/custom_hllpp_banner_pink</item>
+        <item name="colorSecondaryVariant">@color/custom_hllpp_banner_pink</item>
         <item name="colorOnSecondary">@color/black</item>
         <!-- Status bar color. -->
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
 
-        <item name="android:actionBarStyle">@style/FQHLL.ActionBar</item>
-        <item name="actionBarStyle">@style/FQHLL.ActionBar</item>
+        <item name="android:actionBarStyle">@style/HLLPP.ActionBar</item>
+        <item name="actionBarStyle">@style/HLLPP.ActionBar</item>
     </style>
 
-    <style name="FQHLL.ActionBar" parent="Widget.AppCompat.ActionBar">
-        <item name="background">@color/custom_fqhll_banner_blue</item>
-        <item name="titleTextStyle">@style/FQHLL.ActionBar.TitleText</item>
+    <style name="HLLPP.ActionBar" parent="Widget.AppCompat.ActionBar">
+        <item name="background">@color/custom_hllpp_banner_blue</item>
+        <item name="titleTextStyle">@style/HLLPP.ActionBar.TitleText</item>
     </style>
 
-    <style name="FQHLL.ActionBar.TitleText" parent="TextAppearance.AppCompat.Widget.ActionBar.Title">
-        <item name="android:textColor">@color/custom_fqhll_logo_purple</item>
+    <style name="HLLPP.ActionBar.TitleText" parent="TextAppearance.AppCompat.Widget.ActionBar.Title">
+        <item name="android:textColor">@color/custom_hllpp_logo_purple</item>
     </style>
 
-    <style name="Theme.FQHLLKeyboard.Black" parent="Theme.FQHLLKeyboard">
+    <style name="Theme.HLLPPKeyboard.Black" parent="Theme.HLLPPKeyboard">
         <item name="keyColor">@color/custom_dark_grey</item>
         <item name="keyTextColor">@color/white</item>
         <item name="keyboardBackground">@color/black</item>
@@ -40,11 +40,11 @@
         <item name="keyPopupTextColor">@color/black</item>
     </style>
 
-    <style name="Theme.FQHLLKeyboard.DarkBlue" parent="Theme.FQHLLKeyboard">
+    <style name="Theme.HLLPPKeyboard.DarkBlue" parent="Theme.HLLPPKeyboard">
         <item name="keyColor">@color/custom_dark_blue</item>
         <item name="keyTextColor">@color/custom_cyan</item>
         <item name="keyboardBackground">@color/black</item>
-        <item name="keyBorderColor">@color/custom_fqhll_logo_wire_light_blue</item>
+        <item name="keyBorderColor">@color/custom_hllpp_logo_wire_light_blue</item>
         <item name="keyPressedColor">@color/black</item>
         <item name="keyPressedBorderColor">?attr/keyBorderColor</item>
 
@@ -55,7 +55,7 @@
         <item name="keyPopupTextColor">?attr/suggestionBarTextColor</item>
     </style>
 
-    <style name="Theme.FQHLLKeyboard.ShunV6" parent="Theme.FQHLLKeyboard">
+    <style name="Theme.HLLPPKeyboard.ShunV6" parent="Theme.HLLPPKeyboard">
         <item name="keyColor">@color/transparent</item>
         <item name="keyTextColor">@color/white</item>
         <item name="keyboardBackground">@drawable/shunv6</item>
@@ -70,7 +70,7 @@
         <item name="keyPopupTextColor">@color/shunv5_letter</item>
     </style>
 
-    <style name="Theme.FQHLLKeyboard.ShunV5" parent="Theme.FQHLLKeyboard">
+    <style name="Theme.HLLPPKeyboard.ShunV5" parent="Theme.HLLPPKeyboard">
         <item name="keyColor">@color/shunv5_key</item>
         <item name="keyTextColor">@color/shunv5_letter</item>
         <item name="keyboardBackground">@drawable/shunv5</item>
@@ -85,7 +85,7 @@
         <item name="keyPopupTextColor">@color/shun_light_purple</item>
     </style>
 
-    <style name="Theme.FQHLLKeyboard.ShunV4" parent="Theme.FQHLLKeyboard">
+    <style name="Theme.HLLPPKeyboard.ShunV4" parent="Theme.HLLPPKeyboard">
         <item name="keyColor">@color/shunv3_key</item>
         <item name="keyTextColor">@color/shunv3_letter</item>
         <item name="keyboardBackground">@drawable/shunv4</item>
@@ -100,7 +100,7 @@
         <item name="keyPopupTextColor">@color/shun_light_purple</item>
     </style>
 
-    <style name="Theme.FQHLLKeyboard.ShunV3" parent="Theme.FQHLLKeyboard">
+    <style name="Theme.HLLPPKeyboard.ShunV3" parent="Theme.HLLPPKeyboard">
         <item name="keyColor">@color/shunv3_key</item>
         <item name="keyTextColor">@color/shunv3_letter</item>
         <item name="keyboardBackground">@drawable/shunv3</item>
@@ -115,7 +115,7 @@
         <item name="keyPopupTextColor">@color/shun_light_purple</item>
     </style>
 
-    <style name="Theme.FQHLLKeyboard.ShunV2" parent="Theme.FQHLLKeyboard">
+    <style name="Theme.HLLPPKeyboard.ShunV2" parent="Theme.HLLPPKeyboard">
         <item name="keyColor">@color/transparent</item>
         <item name="keyTextColor">@color/teal_200</item>
         <item name="keyboardBackground">@drawable/shunv2</item>
@@ -130,9 +130,9 @@
         <item name="keyPopupTextColor">?attr/suggestionBarColor</item>
     </style>
 
-    <style name="Theme.FQHLLKeyboard.Shun" parent="Theme.FQHLLKeyboard">
+    <style name="Theme.HLLPPKeyboard.Shun" parent="Theme.HLLPPKeyboard">
         <item name="keyColor">@color/shun_blue</item>
-        <item name="keyTextColor">@color/custom_fqhll_logo_pink</item>
+        <item name="keyTextColor">@color/custom_hllpp_logo_pink</item>
         <item name="keyboardBackground">@color/purple_900</item>
         <item name="keyBorderColor">@color/custom_blue</item>
         <item name="keyPressedColor">@color/shun_pressed_blue</item>
@@ -145,7 +145,7 @@
         <item name="keyPopupTextColor">?attr/suggestionBarTextColor</item>
     </style>
 
-    <style name="Theme.FQHLLKeyboard.DuckyV5" parent="Theme.FQHLLKeyboard">
+    <style name="Theme.HLLPPKeyboard.DuckyV5" parent="Theme.HLLPPKeyboard">
         <item name="keyColor">@color/teal_gradient_2_transparent_2</item>
         <item name="keyTextColor">@color/custom_cyan</item>
         <item name="keyboardBackground">@drawable/duckyv5</item>
@@ -154,13 +154,13 @@
         <item name="keyPressedBorderColor">@color/custom_light_blue_transparent</item>
 
         <item name="suggestionBarColor">@color/custom_light_green</item>
-        <item name="suggestionBarTextColor">@color/custom_fqhll_logo_blue</item>
+        <item name="suggestionBarTextColor">@color/custom_hllpp_logo_blue</item>
 
         <item name="keyPopupBackgroundColor">?attr/suggestionBarColor</item>
         <item name="keyPopupTextColor">?attr/suggestionBarTextColor</item>
     </style>
 
-    <style name="Theme.FQHLLKeyboard.DuckyV4" parent="Theme.FQHLLKeyboard">
+    <style name="Theme.HLLPPKeyboard.DuckyV4" parent="Theme.HLLPPKeyboard">
         <item name="keyColor">@color/teal_gradient_2_transparent_2</item>
         <item name="keyTextColor">@color/custom_cyan</item>
         <item name="keyboardBackground">@drawable/duckyv4</item>
@@ -169,13 +169,13 @@
         <item name="keyPressedBorderColor">@color/custom_light_blue_transparent</item>
 
         <item name="suggestionBarColor">@color/custom_light_green</item>
-        <item name="suggestionBarTextColor">@color/custom_fqhll_logo_blue</item>
+        <item name="suggestionBarTextColor">@color/custom_hllpp_logo_blue</item>
 
         <item name="keyPopupBackgroundColor">?attr/suggestionBarColor</item>
         <item name="keyPopupTextColor">?attr/suggestionBarTextColor</item>
     </style>
 
-    <style name="Theme.FQHLLKeyboard.DuckyV3" parent="Theme.FQHLLKeyboard">
+    <style name="Theme.HLLPPKeyboard.DuckyV3" parent="Theme.HLLPPKeyboard">
         <item name="keyColor">@color/teal_gradient_7_transparent_2</item>
         <item name="keyTextColor">@color/custom_cyan</item>
         <item name="keyboardBackground">@drawable/duckyv2</item>
@@ -190,7 +190,7 @@
         <item name="keyPopupTextColor">?attr/suggestionBarColor</item>
     </style>
 
-    <style name="Theme.FQHLLKeyboard.DuckyV2" parent="Theme.FQHLLKeyboard">
+    <style name="Theme.HLLPPKeyboard.DuckyV2" parent="Theme.HLLPPKeyboard">
         <item name="keyColor">@color/teal_gradient_7_transparent_2</item>
         <item name="keyTextColor">@color/custom_cyan</item>
         <item name="keyboardBackground">@drawable/duckyv2</item>
@@ -205,7 +205,7 @@
         <item name="keyPopupTextColor">?attr/suggestionBarTextColor</item>
     </style>
 
-    <style name="Theme.FQHLLKeyboard.Ducky" parent="Theme.FQHLLKeyboard">
+    <style name="Theme.HLLPPKeyboard.Ducky" parent="Theme.HLLPPKeyboard">
         <item name="keyColor">@color/teal_gradient_7</item>
         <item name="keyTextColor">@color/custom_cyan</item>
         <item name="keyboardBackground">@color/custom_hammerhead_blue</item>
@@ -220,22 +220,22 @@
         <item name="keyPopupTextColor">?attr/suggestionBarTextColor</item>
     </style>
 
-    <style name="Theme.FQHLLKeyboard.CottonCandy" parent="Theme.FQHLLKeyboard">
+    <style name="Theme.HLLPPKeyboard.CottonCandy" parent="Theme.HLLPPKeyboard">
         <item name="keyColor">@color/cotton_candy_light_pink</item>
         <item name="keyTextColor">@color/white</item>
         <item name="keyboardBackground">@color/cotton_candy_light_blue</item>
         <item name="keyBorderColor">@color/custom_blue</item>
-        <item name="keyPressedColor">@color/custom_fqhll_banner_pink</item>
+        <item name="keyPressedColor">@color/custom_hllpp_banner_pink</item>
         <item name="keyPressedBorderColor">?attr/keyBorderColor</item>
 
         <item name="suggestionBarColor">@color/white</item>
-        <item name="suggestionBarTextColor">@color/custom_fqhll_banner_pink</item>
+        <item name="suggestionBarTextColor">@color/custom_hllpp_banner_pink</item>
 
         <item name="keyPopupBackgroundColor">?attr/suggestionBarColor</item>
         <item name="keyPopupTextColor">?attr/suggestionBarTextColor</item>
     </style>
 
-    <style name="Theme.FQHLLKeyboard.Cabbage" parent="Theme.FQHLLKeyboard">
+    <style name="Theme.HLLPPKeyboard.Cabbage" parent="Theme.HLLPPKeyboard">
         <item name="keyColor">@color/black</item>
         <item name="keyTextColor">@color/cabbage_green</item>
         <item name="keyboardBackground">@color/cabbage_blue</item>
@@ -250,7 +250,7 @@
         <item name="keyPopupTextColor">?attr/suggestionBarTextColor</item>
     </style>
 
-    <style name="Theme.FQHLLKeyboard.Yellow" parent="Theme.FQHLLKeyboard">
+    <style name="Theme.HLLPPKeyboard.Yellow" parent="Theme.HLLPPKeyboard">
         <item name="keyColor">@color/black</item>
         <item name="keyTextColor">@color/custom_yellow</item>
         <item name="keyboardBackground">@color/black</item>
@@ -265,7 +265,7 @@
         <item name="keyPopupTextColor">?attr/suggestionBarTextColor</item>
     </style>
 
-    <style name="Theme.FQHLLKeyboard.Teal" parent="Theme.FQHLLKeyboard">
+    <style name="Theme.HLLPPKeyboard.Teal" parent="Theme.HLLPPKeyboard">
         <item name="keyColor">@color/black</item>
         <item name="keyTextColor">@color/teal_200</item>
         <item name="keyboardBackground">@color/black</item>
@@ -280,7 +280,7 @@
         <item name="keyPopupTextColor">?attr/suggestionBarTextColor</item>
     </style>
 
-    <style name="Theme.FQHLLKeyboard.Purple" parent="Theme.FQHLLKeyboard">
+    <style name="Theme.HLLPPKeyboard.Purple" parent="Theme.HLLPPKeyboard">
         <item name="keyColor">@color/black</item>
         <item name="keyTextColor">@color/custom_light_purple</item>
         <item name="keyboardBackground">@color/custom_purple</item>
@@ -295,7 +295,7 @@
         <item name="keyPopupTextColor">?attr/suggestionBarTextColor</item>
     </style>
 
-    <style name="Theme.FQHLLKeyboard.Green" parent="Theme.FQHLLKeyboard">
+    <style name="Theme.HLLPPKeyboard.Green" parent="Theme.HLLPPKeyboard">
         <item name="keyColor">@color/black</item>
         <item name="keyTextColor">@color/custom_light_green</item>
         <item name="keyboardBackground">@color/custom_green</item>
@@ -310,7 +310,7 @@
         <item name="keyPopupTextColor">?attr/suggestionBarTextColor</item>
     </style>
 
-    <style name="Theme.FQHLLKeyboard.Hammerhead" parent="Theme.FQHLLKeyboard">
+    <style name="Theme.HLLPPKeyboard.Hammerhead" parent="Theme.HLLPPKeyboard">
         <item name="keyColor">@color/black</item>
         <item name="keyTextColor">@color/custom_light_blue</item>
         <item name="keyboardBackground">@color/custom_hammerhead_blue</item>
@@ -325,7 +325,7 @@
         <item name="keyPopupTextColor">?attr/suggestionBarTextColor</item>
     </style>
 
-    <style name="Theme.FQHLLKeyboard.Cyan" parent="Theme.FQHLLKeyboard">
+    <style name="Theme.HLLPPKeyboard.Cyan" parent="Theme.HLLPPKeyboard">
         <item name="keyColor">@color/teal_gradient_7</item>
         <item name="keyTextColor">@color/custom_cyan</item>
         <item name="keyboardBackground">@color/teal_gradient_1</item>
@@ -340,7 +340,7 @@
         <item name="keyPopupTextColor">?attr/suggestionBarTextColor</item>
     </style>
 
-    <style name="Theme.FQHLLKeyboard.Stargaze" parent="Theme.FQHLLKeyboard">
+    <style name="Theme.HLLPPKeyboard.Stargaze" parent="Theme.HLLPPKeyboard">
         <item name="keyColor">@color/custom_hammerhead_blue</item>
         <item name="keyTextColor">@color/custom_light_yellow</item>
         <item name="keyboardBackground">@color/custom_dark_blue</item>
@@ -355,7 +355,7 @@
         <item name="keyPopupTextColor">?attr/suggestionBarTextColor</item>
     </style>
 
-    <style name="Theme.FQHLLKeyboard.StargazePremium" parent="Theme.FQHLLKeyboard">
+    <style name="Theme.HLLPPKeyboard.StargazePremium" parent="Theme.HLLPPKeyboard">
         <item name="keyColor">@color/custom_hammerhead_blue_transparent</item>
         <item name="keyTextColor">@color/custom_light_yellow</item>
         <item name="keyboardBackground">@drawable/antithisisfine</item>
@@ -370,7 +370,7 @@
         <item name="keyPopupTextColor">?attr/suggestionBarTextColor</item>
     </style>
 
-    <style name="Theme.FQHLLKeyboard.Sage" parent="Theme.FQHLLKeyboard">
+    <style name="Theme.HLLPPKeyboard.Sage" parent="Theme.HLLPPKeyboard">
         <item name="keyColor">@color/sage_keys</item>
         <item name="keyTextColor">@color/sage_letter</item>
         <item name="keyboardBackground">@color/sage_bg</item>
@@ -385,7 +385,7 @@
         <item name="keyPopupTextColor">?attr/suggestionBarTextColor</item>
     </style>
 
-    <style name="Theme.FQHLLKeyboard.Jellyfish" parent="Theme.FQHLLKeyboard">
+    <style name="Theme.HLLPPKeyboard.Jellyfish" parent="Theme.HLLPPKeyboard">
         <item name="keyColor">@color/custom_hammerhead_blue_transparent</item>
         <item name="keyTextColor">@color/custom_jellyfish_main</item>
         <item name="keyboardBackground">@drawable/jellyfish</item>
@@ -400,7 +400,7 @@
         <item name="keyPopupTextColor">?attr/suggestionBarTextColor</item>
     </style>
 
-    <style name="Theme.FQHLLKeyboard.ThisIsFine" parent="Theme.FQHLLKeyboard">
+    <style name="Theme.HLLPPKeyboard.ThisIsFine" parent="Theme.HLLPPKeyboard">
         <item name="keyColor">@color/this_is_fine_brown</item>
         <item name="keyTextColor">@color/this_is_fine_yellow</item>
         <item name="keyboardBackground">@color/this_is_fine_orange</item>
@@ -415,7 +415,7 @@
         <item name="keyPopupTextColor">?attr/suggestionBarTextColor</item>
     </style>
 
-    <style name="Theme.FQHLLKeyboard.ThisIsFinePremium" parent="Theme.FQHLLKeyboard">
+    <style name="Theme.HLLPPKeyboard.ThisIsFinePremium" parent="Theme.HLLPPKeyboard">
         <item name="keyColor">@color/this_is_fine_brown_transparent</item>
         <item name="keyTextColor">@color/custom_yellow</item>
         <item name="keyboardBackground">@drawable/thisisfine</item>
@@ -430,7 +430,7 @@
         <item name="keyPopupTextColor">?attr/suggestionBarTextColor</item>
     </style>
 
-    <style name="Theme.FQHLLKeyboard.ThisIsFinePremium2" parent="Theme.FQHLLKeyboard">
+    <style name="Theme.HLLPPKeyboard.ThisIsFinePremium2" parent="Theme.HLLPPKeyboard">
         <item name="keyColor">@color/this_is_fine_orange_transparent</item>
         <item name="keyTextColor">@color/this_is_fine_yellow</item>
         <item name="keyboardBackground">@drawable/thisisfine</item>
@@ -445,7 +445,7 @@
         <item name="keyPopupTextColor">?attr/suggestionBarTextColor</item>
     </style>
 
-    <style name="Theme.FQHLLKeyboard.AntiThisIsFine" parent="Theme.FQHLLKeyboard">
+    <style name="Theme.HLLPPKeyboard.AntiThisIsFine" parent="Theme.HLLPPKeyboard">
         <item name="keyColor">@color/anti_this_is_fine_light_blue_2</item>
         <item name="keyTextColor">@color/this_is_fine_yellow</item>
         <item name="keyboardBackground">@color/anti_this_is_fine_blue</item>
@@ -460,7 +460,7 @@
         <item name="keyPopupTextColor">?attr/suggestionBarTextColor</item>
     </style>
 
-    <style name="Theme.FQHLLKeyboard.AntiThisIsFinePremium" parent="Theme.FQHLLKeyboard">
+    <style name="Theme.HLLPPKeyboard.AntiThisIsFinePremium" parent="Theme.HLLPPKeyboard">
         <item name="keyColor">@color/transparent_custom_blue</item>
         <item name="keyTextColor">@color/this_is_fine_yellow</item>
         <item name="keyboardBackground">@drawable/thisisnotfine</item>
@@ -475,7 +475,7 @@
         <item name="keyPopupTextColor">?attr/suggestionBarTextColor</item>
     </style>
 
-    <style name="Theme.FQHLLKeyboard.AntiThisIsFinePremium2" parent="Theme.FQHLLKeyboard">
+    <style name="Theme.HLLPPKeyboard.AntiThisIsFinePremium2" parent="Theme.HLLPPKeyboard">
         <item name="keyColor">@color/transparent_custom_blue</item>
         <item name="keyTextColor">@color/this_is_fine_yellow</item>
         <item name="keyboardBackground">@drawable/antithisisfine</item>
@@ -490,7 +490,7 @@
         <item name="keyPopupTextColor">?attr/suggestionBarTextColor</item>
     </style>
 
-    <style name="Theme.FQHLLKeyboard.ColorBlocks" parent="Theme.FQHLLKeyboard">
+    <style name="Theme.HLLPPKeyboard.ColorBlocks" parent="Theme.HLLPPKeyboard">
         <item name="keyColor">@color/transparent</item>
         <item name="keyTextColor">@color/white</item>
         <item name="keyboardBackground">@color/black</item>
@@ -505,7 +505,7 @@
         <item name="keyPopupTextColor">?attr/suggestionBarTextColor</item>
     </style>
 
-    <style name="Theme.FQHLLKeyboard.Nerdmortie" parent="Theme.FQHLLKeyboard">
+    <style name="Theme.HLLPPKeyboard.Nerdmortie" parent="Theme.HLLPPKeyboard">
         <item name="keyColor">@color/shunv3_key</item>
         <item name="keyTextColor">@color/shunv3_letter</item>
         <item name="keyboardBackground">@drawable/nerdmortie</item>

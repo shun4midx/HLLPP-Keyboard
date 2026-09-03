@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "FQ-HLL Keyboard"
+rootProject.name = "HLLPP Keyboard"
 include(":app")
  
