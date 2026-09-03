@@ -1,6 +1,6 @@
 # <img src="./images/HLLPP_App.png" width="30"/> HLLPP Keyboard 
 
-<img src="./images/HLLPP_Banner_Cropped.png"/>
+<img src="./images/HLLPP_Banner_Cropped.jpeg"/>
 
 ## Description
 The HLLPP (HyperLogLog++) keyboard is an Android keyboard, that uses the efficient and minimal memory usage [HLLPP Autocorrection](https://github.com/shun4midx/HyperLogLogPlusPlus-Autocorrect) algorithm, which [Shun](https://github.com/shun4midx) took part in creating to become a reality. Its main data structure was the cardinality estimator "HLL". More specifically, it uses certain properties of HLL's bit registers to simulate different frequencies without needing additional storage.
