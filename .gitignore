@@ -26,3 +26,4 @@ app/release/baselineProfiles/*
 .idea/usage.statistics.xml
 .idea/dictionary.xml
 .idea/shelf/
+.idea/*.xml
