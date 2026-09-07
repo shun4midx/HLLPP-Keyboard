@@ -63,8 +63,8 @@ You can long press the text editor button to change languages.
 | comma `,` | select all |
 | full stop `.` | delete last word |
 | symbols `!?#` | numpad |
-| enter `↵` | skip replacement/password mode |
-| clipboard `⎘` | super/subscript mode |
+| enter `↵` | skip replacement/password mode, open settings (zhuyin keyboard) |
+| clipboard `⎘` | super/subscript mode, show long press symbols/emojis (symbol/emoji keyboard), toggle long press character set (zhuyin keyboard) |
 | text editor `𝙸` | change languages |
 | caps lock `Caps` | copy selected/paste last copied |
 
@@ -103,9 +103,11 @@ We also rank fuzzy suggestions, displayed after all correct suggestions, with si
 
 ##### Zhuyin Keyboard
 
-Individual Zhuyin characters can be typed by long pressing the respective key.
+English characters can be typed by long pressing the respective key, and case (single caps) can be toggled by long pressing `ㄦ`.
 
-More suggestions can be accessed by tapping the clipboard button.
+Individual Zhuyin characters can be typed by switching the long press character set, by long pressing the clipboard button `⎘`.
+
+More suggestions can be accessed by tapping the clipboard button or by scrolling horizontally. 
 
 Chinese symbols are available in the symbol keyboard when typing in Chinese, and can also be typed by long pressing symbols in the symbol keyboard in English mode.
 
@@ -119,7 +121,7 @@ Similar to Zhuyin, for toneless Pinyin input, single-character Chinese suggestio
 
 Individual Pinyin (alphabetical) characters can be typed by long pressing the respective key.
 
-More suggestions can be accessed by tapping the clipboard button.
+More suggestions can be accessed by tapping the clipboard button or by scrolling horizontally.
 
 Tones can be inputted at the end of a word by appending the tone (`0`, `1`, `2`, `3`, `4`) at the end of each word.
 
