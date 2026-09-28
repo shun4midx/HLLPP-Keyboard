@@ -178,7 +178,7 @@ jobs:
 
 You can view the themes in the [themes folder](https://github.com/shun4midx/HLLPP-Keyboard/tree/main/themes#readme).
 
-Want a custom theme? Customisable themes may be implemented in the future, but until then you can open an issue to request one. Please include hex codes of key colour, key text colour, key pressed colour, key border colour, keyboard background colour, suggestion bar colour, and suggestion bar text colour. Alternatively, fork the repository, edit themes.xml, and either build your own apk or open a pull request.
+Want a custom theme? Customisable themes may be implemented in the future, but until then you can open an issue to request one. Please include hex codes of key colour, key text colour, key pressed colour, key border colour, key popup colour, key popup text colour, keyboard background colour, suggestion bar colour, and suggestion bar text colour. Alternatively, fork the repository, edit `themes.xml`, and either build your own apk or open a pull request.
 
 ## Development usage
 
