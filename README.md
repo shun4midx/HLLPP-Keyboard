@@ -28,7 +28,6 @@ Keyboard settings are saved across updates of the app.
 
 - HLLPP autocorrect algorithm
 - Clipboard, text editor, symbols, and emojis
-- Coyote-time-like handling of simutaneous key presses
 - Autocorrect/autocapitalization toggle
 - Lots of [themes](https://github.com/shun4midx/HLLPP-Keyboard/tree/main/themes#readme) and theme customisability (key colour, key text colour, key pressed colour, key border colour, keyboard background colour, suggestion bar (text) colour, key popup (text) colour)
 - Height customisation (short, medium, tall)
