@@ -92,6 +92,8 @@
 
     <color name="shun_light_purple">#D9B5FF</color>
 
+    <color name="shunv6_sugg_bar">#B1F4FE</color>
+
     <color name="shunv5_sugg_bar">#B0FFD0</color>
     <color name="shunv5_sugg_text">#000D92</color>
     <color name="shunv5_key_border">#0A6AB2</color>

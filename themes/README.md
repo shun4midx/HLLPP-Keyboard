@@ -18,10 +18,6 @@
 
 <img height="320px" src="ShunV5.png"/>
 
-## ShunV6
-
-<img height="320px" src="ShunV6.png"/>
-
 ## Ducky
 
 <img height="320px" src="Ducky.png"/>
@@ -53,6 +49,10 @@
 ## Jellyfish
 
 <img height="320px" src="Jellyfish.png"/>
+
+## Cyber
+
+<img height="320px" src="Cyber.png"/>
 
 ## ThisIsFine
 
