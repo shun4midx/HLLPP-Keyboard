@@ -55,6 +55,21 @@
         <item name="keyPopupTextColor">?attr/suggestionBarTextColor</item>
     </style>
 
+    <style name="Theme.HLLPPKeyboard.ShunV7" parent="Theme.HLLPPKeyboard">
+        <item name="keyColor">@color/shunv5_key</item>
+        <item name="keyTextColor">@color/shunv5_letter</item>
+        <item name="keyboardBackground">@drawable/shunv7</item>
+        <item name="keyBorderColor">@color/shunv5_key_border</item>
+        <item name="keyPressedColor">@color/shunv5_pressed</item>
+        <item name="keyPressedBorderColor">@color/shunv5_pressed_border</item>
+
+        <item name="suggestionBarColor">@color/shunv7_sugg_bar</item>
+        <item name="suggestionBarTextColor">@color/shunv5_sugg_text</item>
+
+        <item name="keyPopupBackgroundColor">@color/shunv5_popup</item>
+        <item name="keyPopupTextColor">@color/shun_light_purple</item>
+    </style>
+
     <style name="Theme.HLLPPKeyboard.ShunV6" parent="Theme.HLLPPKeyboard">
         <item name="keyColor">@color/shunv5_key</item>
         <item name="keyTextColor">@color/shunv5_letter</item>
