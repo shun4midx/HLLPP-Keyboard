@@ -2182,7 +2182,7 @@ public class CustomKeyboardApp extends InputMethodService
         int len = longPressSymbols.length;
         longPressSymbolsChi = longPressSymbols;
         for (int i = 0; i < len; i++) {
-            String symbol = longPressSymbolsChi[i];
+            int symbol = longPressSymbolsChi[i].charAt(0);
             if (SYMBOL_TO_CHI.containsKey(symbol)) {
                 longPressSymbolsChi[i] = SYMBOL_TO_CHI.get(symbol);
             }
