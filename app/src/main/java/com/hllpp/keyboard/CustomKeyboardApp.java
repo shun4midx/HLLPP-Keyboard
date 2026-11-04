@@ -120,6 +120,7 @@ public class CustomKeyboardApp extends InputMethodService
     private static final String[] engLetterArray = new String[]{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"};
 //    private static final String[] zhuyinLetterArray = new String[]{"ㄅ", "ㄆ", "ㄇ", "ㄈ", "ㄉ", "ㄊ", "ㄋ", "ㄌ", "ㄍ", "ㄎ", "ㄏ", "ㄐ", "ㄑ", "ㄒ", "ㄓ", "ㄔ", "ㄕ", "ㄖ", "ㄗ", "ㄘ", "ㄙ", "ㄚ", "ㄛ", "ㄜ", "ㄝ", "ㄞ", "ㄟ", "ㄠ", "ㄡ", "ㄢ", "ㄣ", "ㄤ", "ㄥ", "ㄦ", "ㄧ", "ㄨ", "ㄩ", "ˉ", "ˊ", "ˇ", "ˋ", "˙"};
     private static String[] longPressSymbols = new String[]{};
+    private static String[] longPressSymbolsChi = new String[]{};
 
     private boolean supersubMode = false;
     private static final String[] engSuperArray = new String[]{"ᵃ", "ᵇ", "ᶜ", "ᵈ", "ᵉ", "ᶠ", "ᵍ", "ʰ", "ⁱ", "ʲ", "ᵏ", "ˡ", "ᵐ", "ⁿ", "ᵒ", "ᵖ", "⁹", "ʳ", "ˢ", "ᵗ", "ᵘ", "ᵛ", "ʷ", "ˣ", "ʸ", "ᶻ"};
@@ -2177,6 +2178,17 @@ public class CustomKeyboardApp extends InputMethodService
         return out.toString();
     }
 
+    private static void updateLongPressSymbolsChi() {
+        int len = longPressSymbols.length;
+        longPressSymbolsChi = longPressSymbols;
+        for (int i = 0; i < len; i++) {
+            String symbol = longPressSymbolsChi[i];
+            if (SYMBOL_TO_CHI.containsKey(symbol)) {
+                longPressSymbolsChi[i] = SYMBOL_TO_CHI.get(symbol);
+            }
+        }
+    }
+
     private String getLastWordOnCurrentLine(InputConnection ic) {
         CharSequence before = ic.getTextBeforeCursor(50, 0);
         if (before == null) return "";
@@ -3382,6 +3394,7 @@ public class CustomKeyboardApp extends InputMethodService
         else if (symbolHintLayout.equals("math")) {
             longPressSymbols = longPressSymbolsMath;
         }
+        updateLongPressSymbolsChi();
 
         if (engKeyboardLayout.equals("qwerty")) {
             switch (keyboardHeight) {
