@@ -2178,7 +2178,7 @@ public class CustomKeyboardApp extends InputMethodService
         return out.toString();
     }
 
-    private static void updateLongPressSymbolsChi() {
+    private void updateLongPressSymbolsChi() {
         int len = longPressSymbols.length;
         longPressSymbolsChi = longPressSymbols;
         for (int i = 0; i < len; i++) {
