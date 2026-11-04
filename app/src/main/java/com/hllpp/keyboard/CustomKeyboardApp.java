@@ -58,6 +58,7 @@ import java.util.Deque;
 import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.List;
 import java.util.ArrayList;
@@ -77,6 +78,7 @@ public class CustomKeyboardApp extends InputMethodService
     private Keyboard numpadKeyboard;
     private Keyboard zhuyinKeyboard;
     private Keyboard pinyinKeyboard;
+    private Keyboard cangjieKeyboard;
     private Keyboard engKeyboard;
 
     private Keyboard currentKeyboard;
@@ -91,7 +93,8 @@ public class CustomKeyboardApp extends InputMethodService
 
     private enum ChineseInputType {
         ZHUYIN,
-        PINYIN
+        PINYIN,
+        CANGJIE
     }
 
     private ChineseInputType chineseInputType = ChineseInputType.ZHUYIN;
@@ -463,6 +466,34 @@ public class CustomKeyboardApp extends InputMethodService
             Map.entry((int) 'ˋ', "4"),
             Map.entry((int) 'ˊ', "6"),
             Map.entry((int) '˙', "7")
+    );
+    private static final Map<Integer, String> QWERTY_TO_CANGJIE = Map.ofEntries(
+            Map.entry((int) 'a', "日"),
+            Map.entry((int) 'b', "月"),
+            Map.entry((int) 'c', "金"),
+            Map.entry((int) 'd', "木"),
+            Map.entry((int) 'e', "水"),
+            Map.entry((int) 'f', "火"),
+            Map.entry((int) 'g', "土"),
+            Map.entry((int) 'h', "竹"),
+            Map.entry((int) 'i', "戈"),
+            Map.entry((int) 'j', "十"),
+            Map.entry((int) 'k', "大"),
+            Map.entry((int) 'l', "中"),
+            Map.entry((int) 'm', "一"),
+            Map.entry((int) 'n', "弓"),
+            Map.entry((int) 'o', "人"),
+            Map.entry((int) 'p', "心"),
+            Map.entry((int) 'q', "手"),
+            Map.entry((int) 'r', "口"),
+            Map.entry((int) 's', "尸"),
+            Map.entry((int) 't', "廿"),
+            Map.entry((int) 'u', "山"),
+            Map.entry((int) 'v', "女"),
+            Map.entry((int) 'w', "田"),
+            Map.entry((int) 'x', "難"),
+            Map.entry((int) 'y', "卜"),
+            Map.entry((int) 'z', "重")
     );
 
     private void ensureNative() {
@@ -2265,6 +2296,10 @@ public class CustomKeyboardApp extends InputMethodService
                     return;
                 }
             }
+            else if (chineseInputType == ChineseInputType.CANGJIE) {
+                String s = QWERTY_TO_CANGJIE.get((int) c);
+                c = Objects.requireNonNull(s).charAt(0);
+            }
 
             zhuyinBuffer.append(c);
             zhuyinCompositionText.setText(zhuyinBuffer.toString());
@@ -3293,13 +3328,14 @@ public class CustomKeyboardApp extends InputMethodService
         View clipboard = root.findViewById(R.id.btn_clipboard);
         View textEditor = root.findViewById(R.id.btn_editor);
 
-        emojiKeyboard = new Keyboard(wrap, R.xml.emojis);
-        symbolKeyboard= new Keyboard(wrap, R.xml.symbols);
-        mathKeyboard  = new Keyboard(wrap, R.xml.math_symbols);
-        clipKeyboard  = new Keyboard(wrap, R.xml.clipboard);
-        numpadKeyboard= new Keyboard(wrap, R.xml.numpad);
-        zhuyinKeyboard= new Keyboard(wrap, R.xml.custom_keypad_zhuyin);
-        pinyinKeyboard= new Keyboard(wrap, R.xml.custom_keypad_pinyin);
+        emojiKeyboard  = new Keyboard(wrap, R.xml.emojis);
+        symbolKeyboard = new Keyboard(wrap, R.xml.symbols);
+        mathKeyboard   = new Keyboard(wrap, R.xml.math_symbols);
+        clipKeyboard   = new Keyboard(wrap, R.xml.clipboard);
+        numpadKeyboard = new Keyboard(wrap, R.xml.numpad);
+        zhuyinKeyboard = new Keyboard(wrap, R.xml.custom_keypad_zhuyin);
+        pinyinKeyboard = new Keyboard(wrap, R.xml.custom_keypad_pinyin);
+        cangjieKeyboard= new Keyboard(wrap, R.xml.custom_keypad_cangjie);
 
         zhuyinCompositionBar = root.findViewById(R.id.zhuyin_composition_bar);
         zhuyinCompositionText = root.findViewById(R.id.zhuyin_composition_text);
@@ -3326,6 +3362,11 @@ public class CustomKeyboardApp extends InputMethodService
             useEten = false;
             chineseInputType = ChineseInputType.PINYIN;
             chiKeyboard = pinyinKeyboard;
+        }
+        else if (chiKeyboardLayout.equals("cangjie")) {
+            useEten = false;
+            chineseInputType = ChineseInputType.CANGJIE;
+            chiKeyboard = cangjieKeyboard;
         }
         else {
             useEten = false;

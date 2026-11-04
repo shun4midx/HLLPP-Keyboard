@@ -35,7 +35,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private var themes = arrayOf("Unselected", "Shun", "ShunV2", "ShunV3", "ShunV4", "ShunV5", "ShunV6", "ShunV7", "Ducky", "DuckyV2", "DuckyV3", "DuckyV4", "DuckyV5", "Cabbage", "Sage", "Jellyfish", "Tsunami", "Cyber", "ThisIsFine", "ThisIsFinePremium", "ThisIsFinePremium2", "AntiThisIsFine", "AntiThisIsFinePremium", "AntiThisIsFinePremium2", "Black", "Stargaze", "StargazePremium", "Hammerhead", "CottonCandy", "DarkBlue", "Yellow", "Teal", "Purple", "Green", "Cyan", "ColorBlocks", "Nerdmortie")
     private var keyboardHeights = arrayOf("Unselected", "Short", "Medium", "Tall", "Custom")
     private var engKeyboardLayouts = arrayOf("Unselected", "QWERTY", "QWERTZ", "AZERTY", "Dvorak", "Colemak")
-    private var chiKeyboardLayouts = arrayOf("Unselected", "Zhuyin", "ZhuyinEten", "Pinyin")
+    private var chiKeyboardLayouts = arrayOf("Unselected", "Zhuyin", "ZhuyinEten", "Pinyin", /* "Cangjie" */)
     private var symbolHintLayouts = arrayOf("Unselected", "Default", "Alternative", "Math")
     private var emojiVariations = arrayOf("Unselected", "Masculine", "Feminine", "Neutral")
     private var keySound = arrayOf("Unselected", "click", "meow", "quack", "oiiai")
