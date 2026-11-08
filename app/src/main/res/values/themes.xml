@@ -169,7 +169,7 @@
         <item name="keyPressedBorderColor">@color/shunv3_key_border</item>
 
         <item name="suggestionBarColor">@color/shunv3_sugg_bar</item>
-        <item name="suggestionBarTextColor">@color/white</item>:
+        <item name="suggestionBarTextColor">@color/white</item>
 
         <item name="keyPopupBackgroundColor">@color/shunv3_key_border_transparent</item>
         <item name="keyPopupTextColor">@color/shunv5_letter</item>
