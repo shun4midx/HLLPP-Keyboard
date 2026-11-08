@@ -27,3 +27,4 @@ app/release/baselineProfiles/*
 .idea/dictionary.xml
 .idea/shelf/
 .idea/*.xml
+.idea/deploymentTargetSelector.xml
