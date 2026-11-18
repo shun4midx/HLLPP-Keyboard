@@ -3394,7 +3394,6 @@ public class CustomKeyboardApp extends InputMethodService
         else if (symbolHintLayout.equals("math")) {
             longPressSymbols = longPressSymbolsMath;
         }
-        updateLongPressSymbolsChi();
 
         if (engKeyboardLayout.equals("qwerty")) {
             switch (keyboardHeight) {
